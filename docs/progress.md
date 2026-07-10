@@ -5,8 +5,8 @@
 
 ## Statut global
 
-**Phase en cours : Implementation — Epic 1, Story 1.2 ✅ validée**
-Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Story 1.2 (Mixer : gain par deck + crossfader linéaire/smooth/cut) codée, compile et **validée à l'oreille par Julien** (ADR-008). Prochaine étape : Story 1.3 (filtre résonant).
+**Phase en cours : Implementation — Epic 1, Story 1.3 ✅ validée**
+Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Story 1.3 (filtre résonant multimode par deck, knob unique centré = neutre) codée, compile et **validée à l'oreille par Julien** (ADR-008). Prochaine étape : Story 1.4 (pitch vitesse liée).
 
 ## Suivi par epic / story
 
@@ -16,7 +16,7 @@ Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpi
 | 0 — Cadrage | 0.2 Intégrer l'export Claude Design | ✅ Fait | Specs extraites dans `architecture.md` §6 |
 | 1 — Moteur standalone | 1.1 Lecture 2 pistes | ✅ Fait | `native/engine/` (Deck, MainComponent, DeckPanel). Validée au casque par Julien : lecture simultanée de 2 pistes OK. |
 | 1 — Moteur standalone | 1.2 Mixer + crossfader | ✅ Fait | `Mixer` (gain calc, pas d'AudioSource) + `Deck::setGain`. Courbes Linéaire/Smooth/Cut validées au casque. |
-| 1 — Moteur standalone | 1.3 Filtre résonant | ⬜ À faire | |
+| 1 — Moteur standalone | 1.3 Filtre résonant | ✅ Fait | `FilterDSP` (StateVariableTPTFilter), knob unique -1..+1 par deck, centre = bypass réel. Validé au casque. |
 | 1 — Moteur standalone | 1.4 Pitch vitesse liée | ⬜ À faire | |
 | 2 — Intégration Electron | 2.1 Bridge N-API | ⬜ À faire | Dépend d'Epic 1 |
 | 2 — Intégration Electron | 2.2 UI React 2 decks | ⬜ À faire | Peut démarrer, design dispo |
@@ -38,7 +38,7 @@ Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpi
 
 ## Prochaine action
 
-Démarrer la Story 1.3 (filtre résonant multimode par deck).
+Démarrer la Story 1.4 (pitch "vitesse liée", resampling simple).
 
 ## Journal des mises à jour
 
@@ -47,3 +47,4 @@ Démarrer la Story 1.3 (filtre résonant multimode par deck).
 - **2026-07-10** — Démarrage Story 1.1 : `git init`, réorganisation `Documentation ` → `docs/` + `design/`, ADR-012 (politique dépendances/SBOM, `docs/sbom.json`), JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Code du moteur : `mixdeck::Deck` (AudioTransportSource + AudioFormatReaderSource), harnais de test `MixDeckStandalone` (JUCE GUI, 2 `DeckPanel` A/B, `MixerAudioSource`). Build CMake/Ninja OK, app lancée sans crash.
 - **2026-07-10** — Story 1.1 validée à l'oreille par Julien (lecture simultanée de 2 pistes indépendantes, OK). Dépôt poussé en privé sur `github.com/JuTurpin/mixdeck`.
 - **2026-07-10** — Story 1.2 : `mixdeck::Mixer` (calcul de gain seul, pas d'AudioSource) + `Deck::setGain` déléguant à `AudioTransportSource::setGain`. Courbes crossfader Linéaire/Smooth (constant-power)/Cut (scratch, ±8% aux extrêmes). UI harnais : slider volume par deck + crossfader + combo courbe. Validée à l'oreille par Julien (les 3 courbes se comportent comme attendu).
+- **2026-07-10** — Story 1.3 : `mixdeck::FilterDSP` (wrapper `juce::dsp::StateVariableTPTFilter`), knob unique -1..+1 par deck (zone morte centrale = bypass réel, gauche = passe-bas qui se ferme, droite = passe-haut qui s'ouvre, résonance croissante en fin de course). Intégré dans `Deck::getNextAudioBlock` après le gain. UI harnais : knob rotatif "Filtre" par deck. Validée à l'oreille par Julien (comportement nickel).

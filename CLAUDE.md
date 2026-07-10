@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-Epic 1 ("moteur audio standalone JUCE, hors Electron") est en cours — Story 1.1 (lecture 2 pistes) et Story 1.2 (Mixer : gain par deck + crossfader Linéaire/Smooth/Cut) codées, compilées et **validées à l'oreille par Julien**. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+Epic 1 ("moteur audio standalone JUCE, hors Electron") est en cours — Stories 1.1 (lecture 2 pistes), 1.2 (Mixer : gain par deck + crossfader Linéaire/Smooth/Cut) et 1.3 (filtre résonant multimode par deck) codées, compilées et **validées à l'oreille par Julien**. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -55,7 +55,7 @@ mixdeck/
 ├── apps/electron-ui/       # (Epic 2, pas encore créé) Electron + React + TS
 ├── native/engine/          # Moteur audio C++/JUCE
 │   ├── JUCE/               # submodule, pinné (voir docs/sbom.json)
-│   ├── src/                # Deck.cpp (1.1), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource) — FilterDSP/TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes
+│   ├── src/                # Deck.cpp (1.1), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource), FilterDSP.cpp (1.3, StateVariableTPTFilter) — TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes
 │   ├── standalone-app/     # harnais de test JUCE (GUI minimale, hors Electron) — Epic 1 uniquement
 │   └── CMakeLists.txt
 ├── db/                     # (Epic 5, pas encore créé) SQLite
@@ -92,7 +92,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Story 1.3 (filtre résonant multimode par deck).
+**Prochaine action (voir `progress.md`)** : Story 1.4 (pitch "vitesse liée", resampling simple).
 
 ## Contraintes non-fonctionnelles
 

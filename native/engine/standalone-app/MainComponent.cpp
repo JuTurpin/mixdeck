@@ -10,6 +10,8 @@ MainComponent::MainComponent() {
 
     deckPanelA.onVolumeChanged = [this](float volume) { mixer.setDeckVolume(0, volume); };
     deckPanelB.onVolumeChanged = [this](float volume) { mixer.setDeckVolume(1, volume); };
+    deckPanelA.onFilterChanged = [this](float value) { deckA.setFilterKnob(value); };
+    deckPanelB.onFilterChanged = [this](float value) { deckB.setFilterKnob(value); };
     addAndMakeVisible(deckPanelA);
     addAndMakeVisible(deckPanelB);
 

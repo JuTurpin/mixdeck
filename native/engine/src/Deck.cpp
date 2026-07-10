@@ -51,6 +51,10 @@ void Deck::setGain(float gain) {
     transportSource.setGain(gain);
 }
 
+void Deck::setFilterKnob(float value) {
+    filter.setKnobPosition(value);
+}
+
 double Deck::getPositionSeconds() const {
     return transportSource.getCurrentPosition();
 }
@@ -61,6 +65,7 @@ double Deck::getLengthSeconds() const {
 
 void Deck::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    filter.prepare({ sampleRate, (juce::uint32) samplesPerBlockExpected, 2 });
 }
 
 void Deck::releaseResources() {
@@ -74,6 +79,10 @@ void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
     }
 
     transportSource.getNextAudioBlock(bufferToFill);
+
+    auto block = juce::dsp::AudioBlock<float>(*bufferToFill.buffer)
+                     .getSubBlock((size_t) bufferToFill.startSample, (size_t) bufferToFill.numSamples);
+    filter.process(block);
 }
 
 } // namespace mixdeck

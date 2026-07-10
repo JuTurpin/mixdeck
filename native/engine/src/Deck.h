@@ -3,12 +3,13 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include "FilterDSP.h"
 
 namespace mixdeck {
 
-/** One independent playback deck: loads a single audio file, plays/stops it, and
-    applies a gain set by Mixer (fader x crossfader, Story 1.2). Filter (1.3) and
-    pitch (1.4) extend this class in later stories. */
+/** One independent playback deck: loads a single audio file, plays/stops it,
+    applies a gain set by Mixer (fader x crossfader, Story 1.2) and a per-deck
+    resonant filter (Story 1.3). Pitch (1.4) extends this class in a later story. */
 class Deck : public juce::AudioSource {
 public:
     explicit Deck(juce::AudioFormatManager& formatManagerToUse);
@@ -23,6 +24,9 @@ public:
 
     // Combined gain applied by Mixer (fader x crossfader) — see Mixer.h.
     void setGain(float gain);
+
+    // -1..+1, 0 = neutral — see FilterDSP.h.
+    void setFilterKnob(float value);
 
     double getPositionSeconds() const;
     double getLengthSeconds() const;
@@ -39,6 +43,7 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::TimeSliceThread readAheadThread { "mixdeck-deck-read-ahead" };
     juce::String loadedFileName;
+    FilterDSP filter;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Deck)
 };

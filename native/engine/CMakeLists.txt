@@ -7,11 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(JUCE)
 
-# Shared engine code (Deck.cpp here; Mixer/FilterDSP/TimeStretch/PluginHost will
-# be added to this same target in later stories, not created as empty stubs now).
+# Shared engine code (Deck/Mixer/FilterDSP here; TimeStretch/PluginHost will be
+# added to this same target in later stories, not created as empty stubs now).
 add_library(engine-core STATIC
     src/Deck.cpp
     src/Mixer.cpp
+    src/FilterDSP.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)
@@ -19,6 +20,7 @@ target_include_directories(engine-core PUBLIC src)
 target_link_libraries(engine-core
     PUBLIC
         juce::juce_audio_utils
+        juce::juce_dsp
     PRIVATE
         juce::juce_recommended_config_flags
 )

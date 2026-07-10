@@ -28,6 +28,18 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
             onVolumeChanged(static_cast<float>(volumeSlider.getValue()));
     };
 
+    addAndMakeVisible(filterKnob);
+    addAndMakeVisible(filterLabel);
+    filterKnob.setRange(-1.0, 1.0);
+    filterKnob.setValue(0.0, juce::dontSendNotification);
+    filterKnob.onValueChange = [this] {
+        if (onFilterChanged)
+            onFilterChanged(static_cast<float>(filterKnob.getValue()));
+    };
+    filterLabel.setText("Filtre", juce::dontSendNotification);
+    filterLabel.setJustificationType(juce::Justification::centred);
+    filterLabel.setFont(juce::FontOptions(11.0f));
+
     trackLabel.setText("Aucune piste chargee", juce::dontSendNotification);
     trackLabel.setJustificationType(juce::Justification::centred);
     positionLabel.setText("00:00 / 00:00", juce::dontSendNotification);
@@ -70,6 +82,12 @@ void DeckPanel::resized() {
     stopButton.setBounds(transportArea.reduced(4, 0));
 
     area.removeFromTop(8);
+
+    auto filterArea = area.removeFromRight(70);
+    filterLabel.setBounds(filterArea.removeFromTop(16));
+    filterKnob.setBounds(filterArea.removeFromTop(70));
+
+    area.removeFromRight(8);
     volumeSlider.setBounds(area);
 }
 
