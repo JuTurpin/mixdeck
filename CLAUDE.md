@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-Epic 1 ("moteur audio standalone JUCE, hors Electron") est en cours — Stories 1.1 (lecture 2 pistes), 1.2 (Mixer : gain par deck + crossfader Linéaire/Smooth/Cut) et 1.3 (filtre résonant multimode par deck) codées, compilées et **validées à l'oreille par Julien**. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Prochaine étape : Epic 2 (intégration Electron). Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -55,7 +55,7 @@ mixdeck/
 ├── apps/electron-ui/       # (Epic 2, pas encore créé) Electron + React + TS
 ├── native/engine/          # Moteur audio C++/JUCE
 │   ├── JUCE/               # submodule, pinné (voir docs/sbom.json)
-│   ├── src/                # Deck.cpp (1.1), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource), FilterDSP.cpp (1.3, StateVariableTPTFilter) — TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes
+│   ├── src/                # Deck.cpp (1.1, + pitchResampler 1.4), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource), FilterDSP.cpp (1.3, StateVariableTPTFilter) — TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes (Epic 3/4)
 │   ├── standalone-app/     # harnais de test JUCE (GUI minimale, hors Electron) — Epic 1 uniquement
 │   └── CMakeLists.txt
 ├── db/                     # (Epic 5, pas encore créé) SQLite
@@ -81,6 +81,8 @@ Pas de `package.json` racine tant qu'Electron/npm n'entrent pas en jeu (Epic 2) 
 
 Le développement suit les 4 phases BMAD, avec Claude Code écrivant tout le code (UI, moteur C++/JUCE, bindings). Restent manuelles côté Julien : compilation/tests sur machine réelle, et évaluation à l'oreille de la qualité audio — ne jamais prétendre avoir validé un rendu audio sans que Julien l'ait écouté.
 
+**Règle impérative : plan avant code.** Avant toute production de code pour une story (ou tout changement non trivial), établir d'abord un plan avec Julien (mode plan) et attendre sa validation explicite. Tant que ce plan n'est pas défini et approuvé, ne pas écrire de code. Cette règle s'applique systématiquement, story après story — ne pas enchaîner directement sur l'implémentation même si une story précédente vient d'être validée.
+
 Boucle par story : `bmad-create-story` → `bmad-dev-story` → `bmad-code-review`, puis mise à jour de `progress.md`. `bmad-retrospective` à la fin de chaque epic.
 
 Ordre de dépendance des epics :
@@ -92,7 +94,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Story 1.4 (pitch "vitesse liée", resampling simple).
+**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.1 (bridge N-API exposant Deck/Mixer/Filtre au JS).
 
 ## Contraintes non-fonctionnelles
 

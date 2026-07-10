@@ -55,6 +55,11 @@ void Deck::setFilterKnob(float value) {
     filter.setKnobPosition(value);
 }
 
+void Deck::setPitch(float percent) {
+    const auto ratio = juce::jlimit(0.5, 1.5, 1.0 + (double) percent / 100.0);
+    pitchResampler.setResamplingRatio(ratio);
+}
+
 double Deck::getPositionSeconds() const {
     return transportSource.getCurrentPosition();
 }
@@ -65,11 +70,13 @@ double Deck::getLengthSeconds() const {
 
 void Deck::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    pitchResampler.prepareToPlay(samplesPerBlockExpected, sampleRate);
     filter.prepare({ sampleRate, (juce::uint32) samplesPerBlockExpected, 2 });
 }
 
 void Deck::releaseResources() {
     transportSource.releaseResources();
+    pitchResampler.releaseResources();
 }
 
 void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
@@ -78,7 +85,7 @@ void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
         return;
     }
 
-    transportSource.getNextAudioBlock(bufferToFill);
+    pitchResampler.getNextAudioBlock(bufferToFill);
 
     auto block = juce::dsp::AudioBlock<float>(*bufferToFill.buffer)
                      .getSubBlock((size_t) bufferToFill.startSample, (size_t) bufferToFill.numSamples);

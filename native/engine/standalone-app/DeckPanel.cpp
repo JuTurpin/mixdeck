@@ -40,6 +40,18 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
     filterLabel.setJustificationType(juce::Justification::centred);
     filterLabel.setFont(juce::FontOptions(11.0f));
 
+    addAndMakeVisible(pitchSlider);
+    addAndMakeVisible(pitchLabel);
+    pitchSlider.setRange(-50.0, 50.0);
+    pitchSlider.setValue(0.0, juce::dontSendNotification);
+    pitchSlider.onValueChange = [this] {
+        if (onPitchChanged)
+            onPitchChanged(static_cast<float>(pitchSlider.getValue()));
+    };
+    pitchLabel.setText("Pitch", juce::dontSendNotification);
+    pitchLabel.setJustificationType(juce::Justification::centred);
+    pitchLabel.setFont(juce::FontOptions(11.0f));
+
     trackLabel.setText("Aucune piste chargee", juce::dontSendNotification);
     trackLabel.setJustificationType(juce::Justification::centred);
     positionLabel.setText("00:00 / 00:00", juce::dontSendNotification);
@@ -81,6 +93,9 @@ void DeckPanel::resized() {
     playButton.setBounds(transportArea.removeFromLeft(transportArea.getWidth() / 2).reduced(4, 0));
     stopButton.setBounds(transportArea.reduced(4, 0));
 
+    area.removeFromTop(8);
+    pitchLabel.setBounds(area.removeFromTop(14));
+    pitchSlider.setBounds(area.removeFromTop(24));
     area.removeFromTop(8);
 
     auto filterArea = area.removeFromRight(70);

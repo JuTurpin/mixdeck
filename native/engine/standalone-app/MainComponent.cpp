@@ -12,6 +12,8 @@ MainComponent::MainComponent() {
     deckPanelB.onVolumeChanged = [this](float volume) { mixer.setDeckVolume(1, volume); };
     deckPanelA.onFilterChanged = [this](float value) { deckA.setFilterKnob(value); };
     deckPanelB.onFilterChanged = [this](float value) { deckB.setFilterKnob(value); };
+    deckPanelA.onPitchChanged = [this](float percent) { deckA.setPitch(percent); };
+    deckPanelB.onPitchChanged = [this](float percent) { deckB.setPitch(percent); };
     addAndMakeVisible(deckPanelA);
     addAndMakeVisible(deckPanelB);
 
@@ -29,7 +31,7 @@ MainComponent::MainComponent() {
     crossfaderCurveBox.onChange = [this] { crossfaderCurveChanged(); };
     addAndMakeVisible(crossfaderCurveBox);
 
-    setSize(700, 380);
+    setSize(700, 430);
     setAudioChannels(0, 2); // no input, stereo output
 }
 

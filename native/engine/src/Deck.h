@@ -8,8 +8,9 @@
 namespace mixdeck {
 
 /** One independent playback deck: loads a single audio file, plays/stops it,
-    applies a gain set by Mixer (fader x crossfader, Story 1.2) and a per-deck
-    resonant filter (Story 1.3). Pitch (1.4) extends this class in a later story. */
+    applies a gain set by Mixer (fader x crossfader, Story 1.2), a per-deck
+    resonant filter (Story 1.3), and a "linked speed" pitch via resampling
+    (Story 1.4 — pitch follows speed, like a vinyl). */
 class Deck : public juce::AudioSource {
 public:
     explicit Deck(juce::AudioFormatManager& formatManagerToUse);
@@ -28,6 +29,9 @@ public:
     // -1..+1, 0 = neutral — see FilterDSP.h.
     void setFilterKnob(float value);
 
+    // -50..+50 (%), 0 = normal speed. Pitch follows speed (resampling), like a vinyl.
+    void setPitch(float percent);
+
     double getPositionSeconds() const;
     double getLengthSeconds() const;
     juce::String getLoadedFileName() const { return loadedFileName; }
@@ -40,6 +44,7 @@ public:
 private:
     juce::AudioFormatManager& formatManager;
     juce::AudioTransportSource transportSource;
+    juce::ResamplingAudioSource pitchResampler { &transportSource, false, 2 };
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::TimeSliceThread readAheadThread { "mixdeck-deck-read-ahead" };
     juce::String loadedFileName;
