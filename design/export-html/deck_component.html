@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width:100%; display:flex; flex-direction:column; gap:14px; background:linear-gradient(180deg,#212124,#17171a); border:1px solid rgba(0,0,0,0.5); border-radius:12px; padding:16px; box-sizing:border-box; font-family: system-ui, -apple-system, sans-serif; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 6px 20px rgba(0,0,0,0.35);">
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:{{ accent }};display:inline-block;"></span>
+      <span style="font:600 12px system-ui; letter-spacing:0.08em; color:#8b8f98;">{{ label }}</span>
+    </div>
+    <sc-if value="{{ hasTrack }}" hint-placeholder-val="{{ false }}">
+      <div style="font:600 12px/1.2 ui-monospace, SFMono-Regular, monospace; color:#e8e9ec;">{{ track.bpm }} BPM · {{ track.key }}</div>
+    </sc-if>
+  </div>
+
+  <div style="min-height:36px;">
+    <sc-if value="{{ hasTrack }}" hint-placeholder-val="{{ false }}">
+      <div style="font:600 15px/1.3 system-ui; color:#eef0f2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ track.title }}</div>
+      <div style="font:400 12px system-ui; color:#8b8f98; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ track.artist }}</div>
+    </sc-if>
+    <sc-if value="{{ noTrack }}" hint-placeholder-val="{{ true }}">
+      <div style="font:400 13px system-ui; color:#565a63; padding-top:6px;">Aucune piste chargée</div>
+    </sc-if>
+  </div>
+
+  <div style="display:flex; gap:14px; align-items:center;">
+    <div onMouseDown="{{ onPlatterDown }}" style="position:relative; width:104px; height:104px; flex:none; border-radius:50%; cursor:grab; background: repeating-radial-gradient(circle at center, #1c1e24 0px, #1c1e24 3px, #101216 4px, #101216 6px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07), 0 4px 14px rgba(0,0,0,0.5); animation: platterSpin 1.8s linear infinite; animation-play-state: {{ spinState }};">
+      <div style="position:absolute; inset:32px; border-radius:50%; background:{{ accent }}; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 3px #0d0e11, 0 0 10px rgba(0,0,0,0.45);">
+        <div style="width:8px;height:8px;border-radius:50%;background:#0d0e11;"></div>
+      </div>
+      <div style="position:absolute; right:-6px; top:-10px; width:3px; height:46px; background:#2a2d34; border-radius:2px; transform-origin: top center; transform: rotate({{ tonearmAngle }}deg); box-shadow:0 2px 4px rgba(0,0,0,0.4);"></div>
+    </div>
+    <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
+      <div style="font:500 11px ui-monospace, SFMono-Regular, monospace; color:#8b8f98;">{{ elapsedLabel }} / {{ totalLabel }}</div>
+      <div style="display:flex; gap:6px;">
+        <button onClick="{{ onCue }}" style="width:34px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:#1d2026;color:#c9cdd4;font:600 9px system-ui;cursor:pointer;">CUE</button>
+        <button onClick="{{ onPlay }}" style="width:42px;height:28px;border-radius:6px;border:none;background:{{ playBg }};color:{{ playColor }};font:700 11px system-ui;cursor:pointer;">▶</button>
+        <button onClick="{{ onPause }}" style="width:42px;height:28px;border-radius:6px;border:none;background:{{ pauseBg }};color:{{ pauseColor }};font:700 11px system-ui;cursor:pointer;">❚❚</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font:500 9px system-ui;color:#565a63;letter-spacing:0.06em;">PITCH</span>
+          <span style="font:600 10px ui-monospace, SFMono-Regular, monospace;color:#c9cdd4;">{{ pitchLabel }}</span>
+        </div>
+        <div onMouseDown="{{ onPitchDown }}" style="position:relative; width:100%; height:14px; background:#0d0e11; border-radius:7px; cursor:ew-resize;">
+          <div style="position:absolute; left:2px; right:2px; top:6px; height:2px; background:rgba(255,255,255,0.06);"></div>
+          <div style="position:absolute; top:1px; width:14px; height:12px; border-radius:6px; background:{{ accent }}; left: calc({{ pitchLeftPct }} - 7px); box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:relative; height:40px; background:#0a0a0b; border-radius:6px; overflow:hidden; display:flex; align-items:center; gap:1px; padding:0 4px; box-sizing:border-box; box-shadow:inset 0 1px 3px rgba(0,0,0,0.6);">
+    <sc-for list="{{ bars }}" as="bar" hint-placeholder-count="72">
+      <div style="width:2px; flex:none; border-radius:1px; height: {{ bar.hpct }}; background: {{ bar.color }}; opacity: {{ bar.opacity }};"></div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:6px;">
+    <span style="font:600 8px system-ui; color:#565a63; letter-spacing:0.08em;">HOT CUES</span>
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">
+      <sc-for list="{{ pads }}" as="pad" hint-placeholder-count="8">
+        <div onClick="{{ pad.onClick }}" style="height:26px; border-radius:5px; cursor:pointer; background:{{ pad.bg }}; box-shadow:{{ pad.shadow }}; border:1px solid rgba(0,0,0,0.4);"></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:14px; align-items:flex-start;">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <div onMouseDown="{{ onFaderDown }}" style="position:relative; width:34px; height:104px; background:#0a0a0b; border-radius:6px; cursor:ns-resize; overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,0.6);">
+        <div style="position:absolute; left:0; right:0; bottom:0; top: {{ faderTopPct }}; background:linear-gradient(180deg, {{ accent }}, transparent); opacity:0.28;"></div>
+        <div style="position:absolute; left:2px; right:2px; height:7px; top: {{ faderTopPct }}; background:{{ accent }}; border-radius:3px; box-shadow:0 0 8px {{ accent }}; margin-top:-3px;"></div>
+      </div>
+      <span style="font:500 9px system-ui; color:#565a63; letter-spacing:0.06em;">VOLUME</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px; background:#101012; border:1px solid rgba(0,0,0,0.5); border-radius:8px; padding:10px 12px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.5);">
+      <span style="font:600 8px system-ui; color:#565a63; letter-spacing:0.08em; text-align:center;">MIXER</span>
+      <div style="display:flex; gap:10px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+          <div onMouseDown="{{ onFilterDown }}" style="position:relative; width:44px; height:44px; border-radius:50%; background:#0a0a0b; border:1px solid rgba(255,255,255,0.08); cursor:ns-resize; flex:none;">
+            <div style="position:absolute; left:50%; top:50%; width:2px; height:15px; background:{{ accent }}; transform: translate(-50%,-100%) rotate({{ filterAngle }}deg); transform-origin:bottom center; border-radius:1px;"></div>
+          </div>
+          <span style="font:500 8px system-ui; color:#565a63; letter-spacing:0.05em;">FILTRE</span>
+        </div>
+        <sc-for list="{{ eqKnobs }}" as="k" hint-placeholder-count="3">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+            <div onMouseDown="{{ k.onDown }}" style="position:relative; width:34px; height:34px; border-radius:50%; background:#0a0a0b; border:1px solid rgba(255,255,255,0.08); cursor:ns-resize; flex:none;">
+              <div style="position:absolute; left:50%; top:50%; width:2px; height:12px; background:{{ accent }}; transform: translate(-50%,-100%) rotate({{ k.angle }}deg); transform-origin:bottom center; border-radius:1px;"></div>
+            </div>
+            <span style="font:500 8px system-ui; color:#565a63; letter-spacing:0.05em;">{{ k.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <sc-if value="{{ showFx }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1; display:flex; flex-direction:column; gap:6px; min-width:0;">
+      <span style="font:500 9px system-ui; color:#565a63; letter-spacing:0.06em;">CHAÎNE D'EFFETS</span>
+      <sc-for list="{{ fxSlots }}" as="slot" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:6px;background:#0d0e11;border-radius:6px;padding:6px 8px; min-width:0;">
+          <div onClick="{{ slot.onClick }}" style="flex:1; cursor:pointer; font:500 11px system-ui; color: {{ slot.textColor }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">{{ slot.display }}</div>
+          <sc-if value="{{ slot.filled }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ slot.onBypass }}" style="width:20px;height:18px;flex:none;border-radius:4px;border:none;background:{{ slot.bypassBg }};color:#0d0e11;font:700 8px system-ui;cursor:pointer;">B</button>
+            <button onClick="{{ slot.onRemove }}" style="width:18px;height:18px;flex:none;border-radius:4px;border:none;background:transparent;color:#565a63;font:700 12px system-ui;cursor:pointer;line-height:1;">×</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:560},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;DECK A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#4fd1c5&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;track&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;any&quot;},&quot;hasTrack&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;noTrack&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;bars&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[],&quot;tsType&quot;:&quot;any[]&quot;},&quot;pads&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[],&quot;tsType&quot;:&quot;any[]&quot;},&quot;elapsedLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;0:00&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;totalLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;3:42&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onCue&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onPlay&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onPause&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;playBg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#1d2026&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;playColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#c9cdd4&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;pauseBg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#1d2026&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;pauseColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#c9cdd4&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onFaderDown&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e:any) =&gt; void&quot;},&quot;faderTopPct&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;20%&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onFilterDown&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e:any) =&gt; void&quot;},&quot;filterAngle&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;eqKnobs&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[],&quot;tsType&quot;:&quot;any[]&quot;},&quot;showFx&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;fxSlots&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[],&quot;tsType&quot;:&quot;any[]&quot;},&quot;onPlatterDown&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e:any) =&gt; void&quot;},&quot;spinState&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;paused&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tonearmAngle&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:-14,&quot;tsType&quot;:&quot;number&quot;},&quot;pitchLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;+0.0%&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;pitchLeftPct&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;50%&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onPitchDown&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(e:any) =&gt; void&quot;}}"></script>
+</body>
+</html>
+

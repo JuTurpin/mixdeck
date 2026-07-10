@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# CMake build output (native/engine/build/ etc.) — not docs/build/, which holds
+# the (versioned) docx-generation script, not build artifacts.
+native/**/build/
+
+# Xcode
+xcuserdata/
+*.xcodeproj/
+*.xcworkspace/
+
+# Editors
+.vscode/
+.idea/

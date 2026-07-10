@@ -1,0 +1,47 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "MixDeck",
+      "description": "Application desktop macOS de mixage DJ (Electron + moteur audio natif C++/JUCE)"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "JUCE",
+      "version": "8.0.14",
+      "purl": "pkg:github/juce-framework/JUCE@8.0.14",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/juce-framework/JUCE"
+        },
+        {
+          "type": "advisories",
+          "url": "https://github.com/juce-framework/JUCE/security"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-3.0-only"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "vendoring",
+          "value": "git submodule at native/engine/JUCE, pinned to commit 2cdfca8feb300fb424002ba2c2751569e5bacb64 (tag 8.0.14)"
+        },
+        {
+          "name": "epic",
+          "value": "Epic 1 — Story 1.1"
+        }
+      ]
+    }
+  ]
+}
