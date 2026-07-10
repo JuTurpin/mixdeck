@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-Epic 1 ("moteur audio standalone JUCE, hors Electron") est en cours — Story 1.1 (lecture de 2 pistes indépendantes) codée et compile ; validation à l'oreille par Julien en attente (ADR-008). Voir `docs/progress.md` pour l'état story par story à jour. Le dépôt git a été initialisé (branche `main`) lors du démarrage de cette story ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+Epic 1 ("moteur audio standalone JUCE, hors Electron") est en cours — Story 1.1 (lecture de 2 pistes indépendantes) codée, compilée et **validée à l'oreille par Julien**. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -92,7 +92,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Julien valide Story 1.1 au casque (build via les commandes ci-dessus), puis Story 1.2 (Mixer + crossfader) peut démarrer.
+**Prochaine action (voir `progress.md`)** : Story 1.2 (Mixer + crossfader).
 
 ## Contraintes non-fonctionnelles
 

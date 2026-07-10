@@ -5,8 +5,8 @@
 
 ## Statut global
 
-**Phase en cours : Implementation — Epic 1, Story 1.1**
-Dépôt git initialisé (branche `main`), documentation réorganisée en `docs/`/`design/`. JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Story 1.1 codée et compile (CMake + Ninja) ; l'app standalone se lance sans crash. **Reste à faire par Julien (ADR-008)** : validation à l'oreille (charger 2 pistes, lecture simultanée indépendante) avant de marquer la story ✅.
+**Phase en cours : Implementation — Epic 1, Story 1.1 ✅ validée**
+Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). Documentation réorganisée en `docs/`/`design/`. JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Story 1.1 codée, compile (CMake + Ninja) et **validée à l'oreille par Julien** (ADR-008) : lecture simultanée de 2 pistes OK. Prochaine étape : Story 1.2 (Mixer + crossfader).
 
 ## Suivi par epic / story
 
@@ -14,7 +14,7 @@ Dépôt git initialisé (branche `main`), documentation réorganisée en `docs/`
 |---|---|---|---|
 | 0 — Cadrage | 0.1 Cadrage fonctionnel | ✅ Fait | Voir `architecture.md`, `decision.md` |
 | 0 — Cadrage | 0.2 Intégrer l'export Claude Design | ✅ Fait | Specs extraites dans `architecture.md` §6 |
-| 1 — Moteur standalone | 1.1 Lecture 2 pistes | 🟡 Codé, à valider au casque | `native/engine/` (Deck, MainComponent, DeckPanel), build OK. Voir CLAUDE.md pour les commandes. |
+| 1 — Moteur standalone | 1.1 Lecture 2 pistes | ✅ Fait | `native/engine/` (Deck, MainComponent, DeckPanel). Validée au casque par Julien : lecture simultanée de 2 pistes OK. |
 | 1 — Moteur standalone | 1.2 Mixer + crossfader | ⬜ À faire | |
 | 1 — Moteur standalone | 1.3 Filtre résonant | ⬜ À faire | |
 | 1 — Moteur standalone | 1.4 Pitch vitesse liée | ⬜ À faire | |
@@ -38,10 +38,11 @@ Dépôt git initialisé (branche `main`), documentation réorganisée en `docs/`
 
 ## Prochaine action
 
-Julien : builder et écouter (voir CLAUDE.md, section build) — charger un fichier différent sur chaque deck, vérifier lecture simultanée indépendante, puis marquer 1.1 ✅ ci-dessus. Une fois validé, enchaîner sur la Story 1.2 (Mixer + crossfader).
+Démarrer la Story 1.2 (Mixer : gains par deck + crossfader, courbes linéaire/smooth/cut).
 
 ## Journal des mises à jour
 
 - **2026-07-10** — Création des documents `architecture.md`, `roadmap.md`, `decision.md`, `progress.md`. Aucun développement démarré.
 - **2026-07-10** — Analyse de l'export Claude Design (`MixDeck-1b-standalone.html`) : Story 0.2 terminée, specs intégrées dans `architecture.md` §6. Suppression de la piste distribution/App Store (ADR-010) — Epic 6 simplifié en "Build local & lancement". Nouveau point ouvert ADR-011 (GUI plugin native vs générique).
-- **2026-07-10** — Démarrage Story 1.1 : `git init`, réorganisation `Documentation ` → `docs/` + `design/`, ADR-012 (politique dépendances/SBOM, `docs/sbom.json`), JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Code du moteur : `mixdeck::Deck` (AudioTransportSource + AudioFormatReaderSource), harnais de test `MixDeckStandalone` (JUCE GUI, 2 `DeckPanel` A/B, `MixerAudioSource`). Build CMake/Ninja OK, app lancée sans crash. Validation à l'oreille en attente (Julien).
+- **2026-07-10** — Démarrage Story 1.1 : `git init`, réorganisation `Documentation ` → `docs/` + `design/`, ADR-012 (politique dépendances/SBOM, `docs/sbom.json`), JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Code du moteur : `mixdeck::Deck` (AudioTransportSource + AudioFormatReaderSource), harnais de test `MixDeckStandalone` (JUCE GUI, 2 `DeckPanel` A/B, `MixerAudioSource`). Build CMake/Ninja OK, app lancée sans crash.
+- **2026-07-10** — Story 1.1 validée à l'oreille par Julien (lecture simultanée de 2 pistes indépendantes, OK). Dépôt poussé en privé sur `github.com/JuTurpin/mixdeck`.
