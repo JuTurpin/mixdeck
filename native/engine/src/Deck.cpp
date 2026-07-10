@@ -47,6 +47,10 @@ bool Deck::isPlaying() const {
     return transportSource.isPlaying();
 }
 
+void Deck::setGain(float gain) {
+    transportSource.setGain(gain);
+}
+
 double Deck::getPositionSeconds() const {
     return transportSource.getCurrentPosition();
 }

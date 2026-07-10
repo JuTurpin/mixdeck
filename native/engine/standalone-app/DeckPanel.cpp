@@ -19,6 +19,14 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
     addAndMakeVisible(stopButton);
     addAndMakeVisible(trackLabel);
     addAndMakeVisible(positionLabel);
+    addAndMakeVisible(volumeSlider);
+
+    volumeSlider.setRange(0.0, 1.0);
+    volumeSlider.setValue(1.0, juce::dontSendNotification);
+    volumeSlider.onValueChange = [this] {
+        if (onVolumeChanged)
+            onVolumeChanged(static_cast<float>(volumeSlider.getValue()));
+    };
 
     trackLabel.setText("Aucune piste chargee", juce::dontSendNotification);
     trackLabel.setJustificationType(juce::Justification::centred);
@@ -60,6 +68,9 @@ void DeckPanel::resized() {
     auto transportArea = area.removeFromTop(28);
     playButton.setBounds(transportArea.removeFromLeft(transportArea.getWidth() / 2).reduced(4, 0));
     stopButton.setBounds(transportArea.reduced(4, 0));
+
+    area.removeFromTop(8);
+    volumeSlider.setBounds(area);
 }
 
 void DeckPanel::loadFileClicked() {

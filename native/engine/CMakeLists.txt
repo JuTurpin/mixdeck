@@ -11,6 +11,7 @@ add_subdirectory(JUCE)
 # be added to this same target in later stories, not created as empty stubs now).
 add_library(engine-core STATIC
     src/Deck.cpp
+    src/Mixer.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)

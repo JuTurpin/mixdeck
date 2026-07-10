@@ -82,3 +82,10 @@ Epic 1 (moteur standalone)
           ├─► Epic 4 (plugins VST3/AU)    ├─► Epic 6 (build local)
           └─► Epic 5 (bibliothèque)      ─┘
 ```
+
+## Addon
+Addons a voir quand tout sera fonctionnel, il s'agit de fonctionnalité a ajouter
+- possibilité d'enregistrer le mix
+- il faudrait avoir un affichage qui peut donner des infos (a voir commment changer les infos afficher mais au moins pouvoir montrer la répartition du fader)
+- pouvoir mettre une loop sur un morceau, ou un certain nombre de secondes
+- définir des raccourcis clavier.

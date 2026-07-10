@@ -6,9 +6,9 @@
 
 namespace mixdeck {
 
-/** One independent playback deck: loads a single audio file and plays/stops it.
-    No gain/crossfader (Story 1.2), filter (1.3) or pitch (1.4) yet — those extend
-    this class in later stories. */
+/** One independent playback deck: loads a single audio file, plays/stops it, and
+    applies a gain set by Mixer (fader x crossfader, Story 1.2). Filter (1.3) and
+    pitch (1.4) extend this class in later stories. */
 class Deck : public juce::AudioSource {
 public:
     explicit Deck(juce::AudioFormatManager& formatManagerToUse);
@@ -20,6 +20,9 @@ public:
     void play();
     void stop();
     bool isPlaying() const;
+
+    // Combined gain applied by Mixer (fader x crossfader) — see Mixer.h.
+    void setGain(float gain);
 
     double getPositionSeconds() const;
     double getLengthSeconds() const;
