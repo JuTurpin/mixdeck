@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Avant l'Epic 2 (intégration Electron), une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). **Stories 2.1 (Engine API côté Deck), 2.2 (Bridge N-API) et 2.3 (Initialisation Electron, `apps/electron-ui`) sont terminées et validées** par Julien, sans régression sur Epic 1. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Avant l'Epic 2 (intégration Electron), une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). **Stories 2.1 (Engine API côté Deck), 2.2 (Bridge N-API), 2.3 (Initialisation Electron) et 2.4 (Controllers) sont terminées et validées** par Julien — chaîne complète React → Controller → IPC → Bridge → moteur JUCE opérationnelle (chargement, transport, volume, filtre, pitch, crossfader), via une UI de test minimale (pas encore le vrai design). Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -39,7 +39,9 @@ Le Bridge doit être reconstruit contre l'ABI Node **d'Electron** (différente d
 cd native/engine
 npx cmake-js compile --out build-electron --runtime=electron --runtime-version=<version exacte d'electron, voir apps/electron-ui/package.json> --arch=arm64
 ```
-Sortie dans `native/engine/build-electron/Release/mixdeck_bridge.node`, dossier séparé de `native/engine/build/` (Node système) pour ne pas mélanger les deux ABI — voir le piège ci-dessus. `src/main/index.ts` charge ce module au démarrage à titre de diagnostic (log de l'état du deck A), sans rien exposer au renderer pour l'instant (ça, c'est Story 2.4/2.5).
+Sortie dans `native/engine/build-electron/Release/mixdeck_bridge.node`, dossier séparé de `native/engine/build/` (Node système) pour ne pas mélanger les deux ABI — voir le piège ci-dessus.
+
+Depuis la Story 2.4, `src/main/index.ts` garde une instance persistante du moteur et relaie les 13 méthodes de l'Engine API via `ipcMain.handle('mixdeck:<method>', ...)` ; `src/preload/index.ts` les expose au renderer via `contextBridge.exposeInMainWorld('mixdeck', ...)`. Les `Controller` (`src/renderer/src/controllers/`) enveloppent `window.mixdeck` — toute nouvelle logique métier doit vivre là, jamais dans le relai IPC ni dans le preload (ADR-014).
 
 Il n'y a pas de package.json/workspace racine — `native/engine/` et `apps/electron-ui/` restent deux paquets npm indépendants. Pas de suite de tests automatisés pour l'instant — la validation de chaque story est manuelle (écoute au casque ou vérification visuelle de la fenêtre, voir `docs/progress.md`).
 
@@ -81,9 +83,9 @@ Héberger de vrais plugins binaires VST3/AU est impossible en Web Audio API pur.
 ```
 mixdeck/
 ├── apps/electron-ui/       # Electron + React + TS (electron-vite, Story 2.3)
-│   ├── src/main/           # process principal (fenêtre, diagnostic Bridge)
-│   ├── src/preload/        # rien d'exposé avant Story 2.4
-│   ├── src/renderer/src/   # components/controllers/state/bridge — vides avant 2.4/2.5
+│   ├── src/main/           # process principal (fenêtre + relai IPC vers le Bridge, Story 2.4)
+│   ├── src/preload/        # contextBridge expose window.mixdeck (13 méthodes, Story 2.4)
+│   ├── src/renderer/src/   # controllers/ (DeckController/MixerController), state/ (useDeckState, polling temporaire), components/ et bridge/ encore vides (Story 2.5+)
 │   └── package.json        # electron, react, electron-vite, vite... versions exactes (ADR-012)
 ├── native/engine/          # Moteur audio C++/JUCE
 │   ├── JUCE/               # submodule, pinné (voir docs/sbom.json)
@@ -137,7 +139,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.4 (Controllers).
+**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.5 (Communication UI → Engine — vraie UI calquée sur l'export Claude Design).
 
 ## Contraintes non-fonctionnelles
 
