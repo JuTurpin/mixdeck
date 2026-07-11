@@ -1,7 +1,7 @@
 # MixDeck — decision.md
 
 > Journal des décisions techniques (ADR — Architecture Decision Record).
-> Dernière mise à jour : 2026-07-10
+> Dernière mise à jour : 2026-07-11
 > Voir aussi : `architecture.md`, `roadmap.md`, `progress.md`
 
 Chaque entrée : contexte → décision → alternatives écartées → statut.
@@ -77,4 +77,28 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 - La veille de vulnérabilités est effectuée avant toute montée de version d'une dépendance : consultation des security advisories du projet concerné (ex. [GitHub Security Advisories de JUCE](https://github.com/juce-framework/JUCE/security)) côté C++/submodules ; `npm audit` + GitHub Dependabot côté npm (à partir de l'Epic 2, quand Electron/node-addon-api arrivent).
 - En cas de vulnérabilité détectée, la mise à jour est **ciblée sur la seule dépendance concernée** — jamais de mise à jour groupée ou de refactor opportuniste des autres dépendances à cette occasion.
 **Alternatives écartées** : dépendances non épinglées (branches/tags mouvants) — impossible à auditer de façon fiable, casse la reproductibilité des builds.
+**Statut** : Accepté.
+
+### ADR-013 — Contrat "Engine API" défini avant l'UI Electron
+**Contexte** : avant de développer l'UI React de l'Epic 2, revue d'architecture (`docs/update.md`, Julien) demandant de poser un contrat clair entre Electron et JUCE plutôt que de laisser React dépendre directement de l'implémentation du moteur.
+**Décision** : définir une surface d'API minimale avant tout code Bridge/UI (Story 2.1) — `Deck` (loadTrack/unloadTrack/play/pause/stop/seek), `Mixer` (setGain/setCrossfader/setFilter), `Plugins` (addPlugin/removePlugin/movePlugin/setPluginParameter), `Monitoring` (getPosition/getPeakMeter/getWaveform). Cette API cible sera mappée en Story 2.1 sur les méthodes C++ déjà validées de `Deck`/`Mixer` (Epic 1 : `play()`, `stop()`, `setGain()`, `setFilterKnob()`, `setPitch()`) — sans modifier ce code Epic 1.
+**Alternatives écartées** : laisser React appeler directement les méthodes du module natif au fil de l'eau — couplage fort UI/moteur, refactors du moteur qui cassent l'UI.
+**Statut** : Accepté.
+
+### ADR-014 — Couche Controller entre React et le Bridge
+**Contexte** : l'architecture initiale esquissait `React → Bridge → JUCE` (voir `architecture.md` §3 avant révision). Revue d'architecture avant Epic 2 : le Bridge ne doit contenir aucune logique métier, seulement de la traduction JS ↔ C++.
+**Décision** : insérer une couche Controller — `React → Controller → Bridge → JUCE`. Le Controller (JS/TS, côté `apps/electron-ui`) porte la logique métier ; le Bridge (N-API/`NodeBinding.cpp`) reste un simple traducteur d'appels et de types.
+**Alternatives écartées** : Bridge "gros" avec logique métier intégrée — mélange les responsabilités, rend le module natif plus difficile à faire évoluer indépendamment de l'UI.
+**Statut** : Accepté.
+
+### ADR-015 — Communication moteur → UI événementielle
+**Contexte** : au-delà des appels UI → moteur (commandes), l'UI a besoin d'être notifiée des changements côté moteur (position de lecture, fin de piste, erreurs...).
+**Décision** : flux `JUCE → Bridge → EventBus/Store → React`. Événements prévus : `TrackLoaded`, `PlaybackStarted`, `PlaybackPaused`, `PlaybackStopped`, `PositionChanged`, `PeakMeterChanged`, `TrackEnded`, `EngineError`. Les événements haute fréquence (position, vumètres) sont agrégés/throttlés avant d'atteindre React, pour ne pas saturer l'UI.
+**Alternatives écartées** : polling depuis React (React interroge périodiquement l'état du moteur) — plus simple mais moins réactif et introduit des appels synchrones répétés UI → moteur, à l'opposé du principe "limiter les appels synchrones" (voir bonnes pratiques temps réel, `architecture.md` §5).
+**Statut** : Accepté.
+
+### ADR-016 — Machine d'état des Decks comme source de vérité UI
+**Contexte** : sans modèle d'état explicite, l'UI risque de reconstruire son propre état à partir de multiples booléens (`isPlaying`, `isLoading`...), source de désynchronisations avec le moteur.
+**Décision** : chaque Deck expose un état parmi `EMPTY / LOADING / READY / PLAYING / PAUSED / STOPPED / ERROR`. L'UI se base uniquement sur cet état (remonté via les événements de l'ADR-015), jamais sur une reconstruction ad hoc côté React.
+**Alternatives écartées** : état implicite déduit de plusieurs flags côté UI — fragile, désynchronisation facile avec l'état réel du moteur.
 **Statut** : Accepté.

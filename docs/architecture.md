@@ -1,7 +1,7 @@
 # MixDeck — architecture.md
 
 > Document de référence technique pour les agents de développement (Claude Code) et pour Julien.
-> Dernière mise à jour : 2026-07-10
+> Dernière mise à jour : 2026-07-11
 > Voir aussi : `roadmap.md`, `decision.md`, `progress.md`
 
 ## 1. Résumé
@@ -18,8 +18,9 @@ mixdeck/
 │   └── electron-ui/            # Interface Electron + React + TypeScript
 │       ├── src/
 │       │   ├── components/     # Deck, Crossfader, FilterKnob, PluginRack, LibraryBrowser...
-│       │   ├── state/          # Store (paramètres UI, statut de connexion au moteur)
-│       │   └── bridge/         # Wrapper JS autour du module natif (bridge.node)
+│       │   ├── controllers/    # Logique métier (ADR-014) — entre React et le Bridge
+│       │   ├── state/          # Store (paramètres UI, statut de connexion au moteur, machine d'état Deck — ADR-016)
+│       │   └── bridge/         # Wrapper JS autour du module natif (bridge.node) — traduction pure, zéro logique métier
 │       └── package.json
 ├── native/
 │   └── engine/                  # Moteur audio C++ / JUCE
@@ -48,11 +49,14 @@ mixdeck/
 
 | Couche | Techno | Responsabilité |
 |---|---|---|
-| Interface | Electron, React, TypeScript | Rendu (waveform, jog wheels, faders, knobs), aucun traitement du signal |
-| Pont | node-addon-api (N-API) | Transmet les paramètres de contrôle en continu sans bloquer le thread audio |
+| Interface | Electron, React, TypeScript | Rendu (waveform, jog wheels, faders, knobs), aucun traitement du signal, aucune logique métier |
+| Controller (ADR-014) | TypeScript, côté `apps/electron-ui` | Logique métier (orchestration des commandes, machine d'état Deck) — seule couche autorisée à contenir de la logique métier côté JS |
+| Pont | node-addon-api (N-API) | Traduction pure JS ↔ C++ : transmet les paramètres de contrôle en continu sans bloquer le thread audio, aucune logique métier (ADR-014) |
 | Moteur audio | C++ / JUCE | Lecture, pitch/time-stretch, filtre, mixage, plugin host — thread temps réel dédié |
 | Hébergement plugins | JUCE AudioPluginFormatManager | Charge et exécute les plugins VST3/AU choisis, idéalement isolés hors-process |
 | Bibliothèque | SQLite (better-sqlite3) | Métadonnées, tags, crates, cue points |
+
+Flux de commande : `React → Controller → Bridge → JUCE`. Flux d'événements (retour moteur → UI) : `JUCE → Bridge → EventBus/Store → React` (voir "Modèle événementiel" ci-dessous). Voir `decision.md` ADR-014/ADR-015.
 
 ## 4. Composants fonctionnels
 
@@ -78,6 +82,24 @@ Filtre résonant multimode par deck (passe-bas/passe-haut), knob unique centré 
 ### 4.6 Bibliothèque de sons
 SQLite local, scan/import de dossiers, tags, crates, cue points — cohérent avec les habitudes de l'app de bibliothèque existante (projet non réutilisé, mais logique similaire).
 
+### 4.7 Contrat "Engine API" (ADR-013)
+Défini avant tout code Bridge/UI de l'Epic 2, pour que React ne dépende jamais directement de l'implémentation du moteur :
+
+| Domaine | Méthodes | Statut |
+|---|---|---|
+| Deck | `loadFile()` (au lieu de `loadTrack()` — le renommage string↔File se fera au niveau du Bridge, Story 2.2), `unloadTrack()`, `play()`, `pause()`, `stop()`, `seek()`, `getState()` → `DeckState` (`EMPTY/LOADING/READY/PLAYING/PAUSED/STOPPED/ERROR`, ADR-016) | ✅ Implémenté (Story 2.1, `native/engine/src/Deck.h/.cpp`) |
+| Mixer | `setGain()` → `Mixer::setDeckVolume()`, `setCrossfader()` → `Mixer::setCrossfaderPosition()`/`setCrossfaderCurve()`, `setFilter()` → `Deck::setFilterKnob()` | ✅ Déjà couvert par le code Epic 1 (`native/engine/src/Mixer.h`, `Deck.h`) |
+| Plugins | `addPlugin()`, `removePlugin()`, `movePlugin()`, `setPluginParameter()` | ⬜ Epic 4 (aucun code plugin n'existe encore) |
+| Monitoring | `getPosition()` → `Deck::getPositionSeconds()` (déjà là) ; `getPeakMeter()`, `getWaveform()` | ⬜ Différé à une story ultérieure de l'Epic 2 (2.5/2.6) — nécessite du nouveau DSP (mesure de niveau, calcul de waveform), pas juste une exposition de méthode existante |
+
+`pause()` diffère de `stop()` : `pause()` fige la position courante, `stop()` revient à 0 (comportement conservé depuis l'Epic 1). `getState()` détecte aussi la fin de piste naturelle (transition automatique vers `Stopped`), en attendant la remontée d'événement complète de la Story 2.6 (ADR-015).
+
+### 4.8 Modèle événementiel (ADR-015)
+Flux : `JUCE → Bridge → EventBus/Store → React`. Événements : `TrackLoaded`, `PlaybackStarted`, `PlaybackPaused`, `PlaybackStopped`, `PositionChanged`, `PeakMeterChanged`, `TrackEnded`, `EngineError`. Les événements haute fréquence (`PositionChanged`, `PeakMeterChanged`) sont agrégés/throttlés avant d'atteindre React.
+
+### 4.9 Machine d'état des Decks (ADR-016)
+Chaque Deck expose un état unique parmi `EMPTY / LOADING / READY / PLAYING / PAUSED / STOPPED / ERROR`. L'UI se base exclusivement sur cet état (remonté via le modèle événementiel §4.8), jamais sur une reconstruction ad hoc à partir de plusieurs booléens côté React.
+
 ## 5. Contraintes non-fonctionnelles
 
 | Exigence | Cible |
@@ -86,6 +108,7 @@ SQLite local, scan/import de dossiers, tags, crates, cue points — cohérent av
 | Stabilité | Un plugin tiers instable ne doit jamais faire planter l'UI/le process principal |
 | Distribution | Usage strictement personnel, mono-utilisateur, mono-poste : **pas de notarization Apple ni de distribution**, build local uniquement (voir `decision.md` ADR-010) |
 | Licences | Aucune dépendance à un SDK propriétaire non redistribuable (VST3 SDK MIT depuis oct. 2025 ; éviter le VST2/FST en V1 pour cette raison — cf. `decision.md`) |
+| Mémoire / temps réel | Pas d'allocation dans le thread audio, buffers préalloués, pas de copies inutiles, RAII/`std::unique_ptr`, ressources chargées avant lecture, échanges lock-free entre UI et moteur, ownership explicite des Decks/plugins/buffers (qui crée/détruit quoi) |
 
 ## 6. Intégration du design (Claude Design)
 

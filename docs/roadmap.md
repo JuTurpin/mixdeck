@@ -1,7 +1,7 @@
 # MixDeck — roadmap.md
 
 > Séquençage du développement, basé sur les 4 phases du processus BMAD (Build More Architect Dreams — bmad-method.org) : **Analysis → Planning → Solutioning → Implementation**.
-> Dernière mise à jour : 2026-07-10
+> Dernière mise à jour : 2026-07-11
 > Voir aussi : `architecture.md`, `decision.md`, `progress.md`
 
 ## Comment lire ce document
@@ -30,9 +30,15 @@ Objectif : valider le DSP à l'oreille avant d'investir dans le bridge Electron.
 **Jalon** : application console/standalone JUCE, testable au casque.
 
 ### Epic 2 — Intégration Electron
-2.1 Bridge N-API (node-addon-api) exposant Deck/Mixer/Filtre au JS
-2.2 UI React : 2 decks connectés au moteur (transport, position, waveform statique) — calquée sur l'export Claude Design
-2.3 Fader, crossfader, knob filtre connectés en temps réel
+> Découpage révisé le 2026-07-11 suite à la revue d'architecture de Julien (`decision.md` ADR-013 à ADR-016) — couche Controller, contrat Engine API et modèle événementiel posés avant le code UI/Bridge.
+
+2.1 Définition de l'Engine API (ADR-013) — contrat Deck/Mixer/Plugins/Monitoring, mappé sur le `Deck`/`Mixer` C++ existant (Epic 1)
+2.2 Bridge N-API (node-addon-api) — traduction pure JS ↔ C++, aucune logique métier (ADR-014)
+2.3 Initialisation Electron (fenêtre, packaging de dev)
+2.4 Controllers (ADR-014) — logique métier côté JS entre React et le Bridge
+2.5 Communication UI → Engine — React/Controller pilotent Deck/Mixer/Filtre en temps réel, calqué sur l'export Claude Design
+2.6 Communication Engine → UI — modèle événementiel (ADR-015) et machine d'état des Decks (ADR-016)
+2.7 Validation fonctionnelle et performances
 **Jalon** : mixer deux morceaux depuis l'interface graphique.
 **Dépend de** : Epic 1, Story 0.2.
 

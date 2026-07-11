@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Prochaine étape : Epic 2 (intégration Electron). Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Avant l'Epic 2 (intégration Electron), une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`), et la **Story 2.1 (Engine API côté Deck : `DeckState`, `unloadTrack`/`pause`/`seek`) est terminée et validée**, y compris non-régression complète d'Epic 1. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -23,7 +23,7 @@ Il n'y a pas encore de package.json/npm racine (Electron arrive en Epic 2) : tou
 Toutes les décisions et le cadrage vivent dans `docs/` et se référencent mutuellement :
 
 - `docs/architecture.md` — architecture technique cible, structure de dépôt proposée, couches applicatives, composants fonctionnels, specs UI extraites du design (§6).
-- `docs/decision.md` — journal des décisions (ADR-001 à ADR-012), avec alternatives écartées et statut (Accepté / Ouvert).
+- `docs/decision.md` — journal des décisions (ADR-001 à ADR-016), avec alternatives écartées et statut (Accepté / Ouvert).
 - `docs/roadmap.md` — séquencement en 6 epics selon le processus BMAD (Analysis → Planning → Solutioning → Implementation).
 - `docs/progress.md` — tracker d'avancement **vivant**, à mettre à jour après chaque story.
 - `design/export-html/` — exports Claude Design (`MixDeck-1b-standalone.html`, `deck_component.html`), référence visuelle exacte des composants (Deck, console master, modale plugin).
@@ -45,17 +45,20 @@ MixDeck est une application desktop macOS (Electron) simulant deux platines DJ :
 Héberger de vrais plugins binaires VST3/AU est impossible en Web Audio API pur. Cela impose :
 
 - **Moteur audio natif C++/JUCE** — lecture, pitch/time-stretch, filtre, mixage, plugin host, sur un thread temps réel dédié. Electron est une pure coquille d'interface (React/TypeScript), sans aucun traitement de signal.
+- **Flux de commande à 4 couches** (ADR-014) : `React → Controller → Bridge → JUCE`. Le Controller (TS, côté `apps/electron-ui`) porte toute la logique métier ; le Bridge (`node-addon-api`) ne fait que traduire JS ↔ C++, **aucune logique métier dans le Bridge**.
 - **Pont N-API** (`node-addon-api`) entre l'UI et le moteur natif — doit transmettre les paramètres de contrôle en continu **sans jamais bloquer le thread audio**. C'est le point de vigilance principal du projet pour éviter tout glitch audio.
+- **Flux d'événements retour** (ADR-015) : `JUCE → Bridge → EventBus/Store → React`, avec agrégation/throttling des événements haute fréquence (position, vumètres).
 - Le calcul de gain (fader/crossfader) se fait entièrement côté moteur natif, jamais côté UI.
+- **Contrat "Engine API"** (ADR-013, détail dans `architecture.md` §4.7) défini avant tout code Bridge/UI — React ne doit jamais dépendre directement de l'implémentation du moteur.
 
 ## Structure de dépôt
 
 ```
 mixdeck/
-├── apps/electron-ui/       # (Epic 2, pas encore créé) Electron + React + TS
+├── apps/electron-ui/       # (Epic 2, pas encore créé) Electron + React + TS — src/components, src/controllers (ADR-014), src/state, src/bridge
 ├── native/engine/          # Moteur audio C++/JUCE
 │   ├── JUCE/               # submodule, pinné (voir docs/sbom.json)
-│   ├── src/                # Deck.cpp (1.1, + pitchResampler 1.4), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource), FilterDSP.cpp (1.3, StateVariableTPTFilter) — TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes (Epic 3/4)
+│   ├── src/                # Deck.cpp (1.1, + pitchResampler 1.4, + DeckState/unloadTrack/pause/seek 2.1), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource), FilterDSP.cpp (1.3, StateVariableTPTFilter) — TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes (Epic 3/4)
 │   ├── standalone-app/     # harnais de test JUCE (GUI minimale, hors Electron) — Epic 1 uniquement
 │   └── CMakeLists.txt
 ├── db/                     # (Epic 5, pas encore créé) SQLite
@@ -73,9 +76,19 @@ Pas de `package.json` racine tant qu'Electron/npm n'entrent pas en jeu (Epic 2) 
 - **Pas de notarization/distribution Apple** (ADR-010) : build et signature ad-hoc locale uniquement (`codesign --sign -`). Ne jamais ajouter de logique de notarization, Developer ID ou Mac App Store.
 - **Projet neuf, sans réutilisation de code** d'une app de bibliothèque existante (ADR-009) — logique similaire (SQLite local) mais pas de code partagé.
 - **Dépendances épinglées + SBOM à jour** (ADR-012) — voir « Politique dépendances/sécurité » plus haut.
+- **Engine API** (ADR-013) — contrat Deck/Mixer/Plugins/Monitoring (`architecture.md` §4.7). Deck et Mixer sont couverts (Story 2.1) ; Monitoring (`getPeakMeter`/`getWaveform`) différé à 2.5/2.6 (nouveau DSP requis) ; Plugins reste en Epic 4.
+- **Couche Controller entre React et le Bridge** (ADR-014) — `React → Controller → Bridge → JUCE`, Bridge = traduction pure.
+- **Modèle événementiel moteur → UI** (ADR-015) — `JUCE → Bridge → EventBus/Store → React`, événements agrégés/throttlés pour position/vumètres.
+- **Machine d'état des Decks** (ADR-016) — `EMPTY/LOADING/READY/PLAYING/PAUSED/STOPPED/ERROR`, seule source de vérité pour l'UI (pas de booléens épars côté React).
 - Deux décisions **encore ouvertes**, à trancher avant de coder les stories concernées :
   - ADR-006 (lib de time-stretch Rubber Band vs SoundTouch, licence à confirmer) — avant Epic 3.
   - ADR-011 (GUI native du plugin vs knobs génériques pour l'éditeur de plugin) — avant la story 4.3.
+
+## Bonnes pratiques temps réel (mémoire/ownership)
+
+Applicable à tout code natif futur (Epic 2 et au-delà), pas seulement lors de l'écriture initiale : pas d'allocation dans le thread audio, buffers préalloués, pas de copies inutiles, RAII/`std::unique_ptr`, charger les ressources avant lecture, privilégier des échanges lock-free entre UI et moteur. Réfléchir explicitement à l'ownership des objets (qui crée/détruit les Decks, plugins, buffers) avant d'écrire le code, pas après.
+
+Garde-fous Epic 2 (revue d'architecture du 2026-07-11) : ne pas changer les choix techniques déjà actés (JUCE/Electron/React/N-API/SQLite) ; ne pas réécrire les composants Epic 1 déjà validés sans raison ; ne pas ajouter de dépendance inutile (cohérent avec ADR-012) ; ne jamais mettre de logique métier dans le Bridge (ADR-014) ; ne pas modifier les epics suivants (3 à 6) à l'occasion d'un travail sur l'Epic 2.
 
 ## Processus de développement (BMAD)
 
@@ -94,7 +107,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.1 (bridge N-API exposant Deck/Mixer/Filtre au JS).
+**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.2 (Bridge N-API).
 
 ## Contraintes non-fonctionnelles
 
