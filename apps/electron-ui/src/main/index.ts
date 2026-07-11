@@ -1,7 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
+import { startEngineEventPump } from './engineEvents'
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 600,
@@ -35,6 +36,8 @@ function createWindow(): void {
     else mainWindow.maximize()
   })
   ipcMain.on('mixdeck:windowClose', () => mainWindow.close())
+
+  return mainWindow
 }
 
 // Story 2.4 — relai IPC vers le Bridge natif (Story 2.2). Le module ne peut
@@ -93,8 +96,10 @@ function registerFilePickerHandler(): void {
 }
 
 app.whenReady().then(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let nativeEngine: any
   try {
-    const nativeEngine = createNativeEngine()
+    nativeEngine = createNativeEngine()
     registerBridgeHandlers(nativeEngine)
     registerFilePickerHandler()
     console.log('[MixDeck] Bridge OK, deck A state =', nativeEngine.deckGetState(0))
@@ -102,7 +107,14 @@ app.whenReady().then(() => {
     console.error('[MixDeck] Bridge failed to load:', error)
   }
 
-  createWindow()
+  const mainWindow = createWindow()
+
+  // Story 2.6 (ADR-015) — pousse les changements d'état/position au renderer
+  // au lieu qu'il les demande (voir src/main/engineEvents.ts).
+  if (nativeEngine) {
+    const stopEventPump = startEngineEventPump(nativeEngine, mainWindow.webContents)
+    mainWindow.on('closed', stopEventPump)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

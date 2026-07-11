@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Avant l'Epic 2 (intégration Electron), une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). **Stories 2.1 à 2.5 sont terminées et validées** par Julien — chaîne complète React → Controller → IPC → Bridge → moteur JUCE opérationnelle, avec la vraie UI (Deck/Mixer/Filtre, calquée sur l'export Claude Design), fenêtre sans cadre natif (`frame: false`, contrôles fermer/réduire/agrandir câblés via IPC — fermer quitte toute l'app, usage mono-fenêtre ADR-010). Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+**Epic 1 ("moteur audio standalone JUCE") et Epic 2 ("intégration Electron") sont terminés.** Epic 1 : les 4 stories (lecture 2 pistes, Mixer/crossfader, filtre résonant, pitch vitesse liée) validées à l'oreille. Avant l'Epic 2, une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). Epic 2 : chaîne complète React → Controller → IPC → Bridge → moteur JUCE opérationnelle, vraie UI (Deck/Mixer/Filtre, calquée sur l'export Claude Design), fenêtre sans cadre natif (`frame: false`, fermer quitte toute l'app — ADR-010), modèle événementiel (ADR-015) poussé par le process principal, et checklist de robustesse/performance (Story 2.7) passée sans souci notable. **Toutes les stories validées par Julien.** Voir `docs/progress.md` pour l'état story par story à jour. Prochaine étape : Epic 3 (pitch avancé & BPM). Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -42,6 +42,8 @@ npx cmake-js compile --out build-electron --runtime=electron --runtime-version=<
 Sortie dans `native/engine/build-electron/Release/mixdeck_bridge.node`, dossier séparé de `native/engine/build/` (Node système) pour ne pas mélanger les deux ABI — voir le piège ci-dessus.
 
 Depuis la Story 2.4, `src/main/index.ts` garde une instance persistante du moteur et relaie les 13 méthodes de l'Engine API via `ipcMain.handle('mixdeck:<method>', ...)` ; `src/preload/index.ts` les expose au renderer via `contextBridge.exposeInMainWorld('mixdeck', ...)`. Les `Controller` (`src/renderer/src/controllers/`) enveloppent `window.mixdeck` — toute nouvelle logique métier doit vivre là, jamais dans le relai IPC ni dans le preload (ADR-014).
+
+Depuis la Story 2.6, `src/main/engineEvents.ts` pousse en plus l'état/la position au renderer (`webContents.send`, ~200 ms) au lieu que celui-ci les demande — voir `src/shared/events.ts` (type `MixdeckEvent`) et `preload.onEvent()`. `useDeckState` s'y abonne ; ne pas réintroduire de polling côté renderer pour ces valeurs.
 
 Il n'y a pas de package.json/workspace racine — `native/engine/` et `apps/electron-ui/` restent deux paquets npm indépendants. Pas de suite de tests automatisés pour l'instant — la validation de chaque story est manuelle (écoute au casque ou vérification visuelle de la fenêtre, voir `docs/progress.md`).
 
@@ -83,9 +85,10 @@ Héberger de vrais plugins binaires VST3/AU est impossible en Web Audio API pur.
 ```
 mixdeck/
 ├── apps/electron-ui/       # Electron + React + TS (electron-vite, Story 2.3)
-│   ├── src/main/           # fenêtre (sans cadre natif, Story 2.5) + relai IPC vers le Bridge (Story 2.4) + commandes fenêtre (mixdeck:windowMinimize/ToggleMaximize/Close)
-│   ├── src/preload/        # contextBridge expose window.mixdeck (13 méthodes Engine API + pickFile + commandes fenêtre)
-│   ├── src/renderer/src/   # controllers/ (DeckController/MixerController), state/ (useDeckState, polling temporaire), components/ (TitleBar/Deck/FilterKnob/Crossfader/ConsoleMaster, Story 2.5) — bridge/ encore vide
+│   ├── src/shared/         # events.ts — type MixdeckEvent partagé main/preload/renderer (Story 2.6)
+│   ├── src/main/           # fenêtre (sans cadre natif, Story 2.5) + relai IPC vers le Bridge (Story 2.4) + commandes fenêtre + engineEvents.ts (pump événementiel, Story 2.6)
+│   ├── src/preload/        # contextBridge expose window.mixdeck (13 méthodes Engine API + pickFile + commandes fenêtre + onEvent)
+│   ├── src/renderer/src/   # controllers/ (DeckController/MixerController), state/ (useDeckState, événementiel depuis 2.6), components/ (TitleBar/Deck/FilterKnob/Crossfader/ConsoleMaster, Story 2.5) — bridge/ encore vide
 │   └── package.json        # electron, react, electron-vite, vite... versions exactes (ADR-012)
 ├── native/engine/          # Moteur audio C++/JUCE
 │   ├── JUCE/               # submodule, pinné (voir docs/sbom.json)
@@ -110,7 +113,7 @@ Pas de `package.json`/workspace racine : `native/engine/` et `apps/electron-ui/`
 - **Dépendances épinglées + SBOM à jour** (ADR-012) — voir « Politique dépendances/sécurité » plus haut.
 - **Engine API** (ADR-013) — contrat Deck/Mixer/Plugins/Monitoring (`architecture.md` §4.7). Deck et Mixer sont couverts (Story 2.1) ; Monitoring (`getPeakMeter`/`getWaveform`) différé à 2.5/2.6 (nouveau DSP requis) ; Plugins reste en Epic 4.
 - **Couche Controller entre React et le Bridge** (ADR-014) — `React → Controller → Bridge → JUCE`, Bridge = traduction pure.
-- **Modèle événementiel moteur → UI** (ADR-015) — `JUCE → Bridge → EventBus/Store → React`, événements agrégés/throttlés pour position/vumètres.
+- **Modèle événementiel moteur → UI** (ADR-015) — `JUCE → Bridge → EventBus/Store → React`, événements agrégés/throttlés pour position/vumètres. Implémenté en Story 2.6 sans callback natif C++ (`Napi::ThreadSafeFunction`) : le process principal lit l'état directement sur `nativeEngine` (déjà dans ce process, pas d'IPC) et pousse via `webContents.send` — voir `src/main/engineEvents.ts`. À revisiter si un vrai callback natif devient nécessaire (Epic 3/4).
 - **Machine d'état des Decks** (ADR-016) — `EMPTY/LOADING/READY/PLAYING/PAUSED/STOPPED/ERROR`, seule source de vérité pour l'UI (pas de booléens épars côté React).
 - **UI Story 2.5 volontairement partielle** : le style Claude Design est repris pour Deck/Mixer/Filtre uniquement (ce que le moteur pilote réellement). BPM/clé, waveform, hot cues, EQ 3 bandes, chaîne d'effets, vumètres, bibliothèque/crates sont **absents de l'écran**, pas des placeholders — à ajouter story par story quand leur moteur existera (Epic 3/4/5), pas en avance.
 - Deux décisions **encore ouvertes**, à trancher avant de coder les stories concernées :
@@ -140,7 +143,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.6 (Communication Engine → UI — modèle événementiel, remplace le polling de `useDeckState`).
+**Prochaine action (voir `progress.md`)** : Epic 3 (pitch avancé & BPM), Story 3.1 (bibliothèque de time-stretch — ADR-006, licence à confirmer avant de choisir).
 
 ## Contraintes non-fonctionnelles
 

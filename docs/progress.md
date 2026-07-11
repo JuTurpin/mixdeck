@@ -8,7 +8,8 @@
 **Epic 1 ✅ terminé — jalon "moteur standalone JUCE testable au casque" atteint**
 Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Les 4 stories de l'Epic 1 (lecture 2 pistes, mixer/crossfader, filtre résonant, pitch vitesse liée) sont codées, compilent et **validées à l'oreille par Julien** (ADR-008).
 
-Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Stories 2.1 à **2.5 sont codées, compilent et validées par Julien** — la vraie UI (Deck/Mixer/Filtre, calquée sur l'export Claude Design) est en place, fenêtre sans cadre natif avec contrôles fonctionnels (fermer/réduire/agrandir). Prochaine étape : Story 2.6 (modèle événementiel, remplace le polling).
+**Epic 2 ✅ terminé — jalon "mixer deux morceaux depuis l'interface graphique" atteint**
+Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Les 7 stories sont codées, compilent et **validées par Julien**, y compris la checklist de robustesse/performance de la Story 2.7 (RAS, seul point connu : ergonomie du drag de la platine, déjà noté dans la roadmap section Addon). Prochaine étape : Epic 3 (pitch avancé & BPM).
 
 ## Suivi par epic / story
 
@@ -25,8 +26,8 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 | 2 — Intégration Electron | 2.3 Initialisation Electron | ✅ Fait | `apps/electron-ui` (electron-vite, React+TS). Bridge reconstruit pour l'ABI Electron (`build-electron/`). Fenêtre + diagnostic Bridge validés par Julien. |
 | 2 — Intégration Electron | 2.4 Controllers | ✅ Fait | `DeckController`/`MixerController` + relai IPC (main/preload). État par polling temporaire (`useDeckState`). Validé par Julien : chargement, transport, volume, filtre, pitch, crossfader tous fonctionnels. |
 | 2 — Intégration Electron | 2.5 Communication UI → Engine | ✅ Fait | Vraie UI (`Deck`/`Crossfader`/`ConsoleMaster`/`FilterKnob`/`TitleBar`), sélecteur de fichier natif, fenêtre sans cadre natif (fermer/réduire/agrandir via IPC). Validée par Julien. |
-| 2 — Intégration Electron | 2.6 Communication Engine → UI | ⬜ À faire | Modèle événementiel (ADR-015) + machine d'état Deck (ADR-016) |
-| 2 — Intégration Electron | 2.7 Validation fonctionnelle et performances | ⬜ À faire | |
+| 2 — Intégration Electron | 2.6 Communication Engine → UI | ✅ Fait | `engineEvents.ts` (pump process principal, 200ms, push via `webContents.send`), `onEvent` côté preload/renderer. `useDeckState` n'interroge plus le Bridge. Validé par Julien. |
+| 2 — Intégration Electron | 2.7 Validation fonctionnelle et performances | ✅ Fait | Checklist robustesse/cycle de vie/performance parcourue par Julien : RAS. Seul point connu : ergonomie du drag de la platine (déjà en roadmap, Addon). **Epic 2 terminé.** |
 | 3 — Pitch avancé | 3.1 Time-stretch (lib à choisir) | ⬜ À faire | Décision licence ouverte (ADR-006) |
 | 3 — Pitch avancé | 3.2 Détection BPM | ⬜ À faire | |
 | 3 — Pitch avancé | 3.3 Sync automatique | ⬜ À faire | |
@@ -44,7 +45,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 
 ## Prochaine action
 
-Démarrer la Story 2.6 (Communication Engine → UI — modèle événementiel ADR-015, remplace le polling de `useDeckState`), avec son propre plan dédié.
+Démarrer l'Epic 3 (Pitch avancé & BPM) — Story 3.1 (bibliothèque de time-stretch, ADR-006 à trancher), avec son propre plan dédié.
 
 ## Journal des mises à jour
 
@@ -61,3 +62,5 @@ Démarrer la Story 2.6 (Communication Engine → UI — modèle événementiel A
 - **2026-07-11** — Story 2.3 : `apps/electron-ui` scaffoldé (electron-vite, React+TS ; `vite@7.3.6`/`@vitejs/plugin-react@5.2.0` épinglés pour compatibilité peer avec `electron-vite@5.0.0`). `src/main/index.ts` ouvre la fenêtre et charge le Bridge (reconstruit pour l'ABI Electron dans `native/engine/build-electron/`) à titre de diagnostic. Écran minimal React (thème sombre). Validé par Julien : fenêtre ouverte, `Bridge OK, deck A state = EMPTY` dans les logs, fermeture propre.
 - **2026-07-11** — Story 2.4 : relai IPC (`ipcMain.handle`/`contextBridge`) pour les 13 méthodes de l'Engine API, traduction pure (ADR-014). `DeckController`/`MixerController` côté renderer (`src/renderer/src/controllers/`). État rafraîchi par polling temporaire (`useDeckState`, ~300 ms — remplacé par le modèle événementiel en Story 2.6). UI de test minimale (inputs bruts) dans `App.tsx`. Validé par Julien : chargement d'un son par deck, fader, filtre, pitch, crossfader, états bien reflétés — chaîne React → Controller → IPC → Bridge → moteur entièrement opérationnelle.
 - **2026-07-11** — Story 2.5 : vraie UI calquée sur l'export Claude Design, scope limité à Deck/Mixer/Filtre (BPM/clé, waveform, hot cues, EQ, effets, vumètres, bibliothèque absents — pas de moteur derrière, décision actée avec Julien). Nouveaux composants `TitleBar`/`Deck`/`FilterKnob`/`Crossfader`/`ConsoleMaster`. Sélecteur de fichier natif (`pickFile` + `DeckController.pickAndLoadTrack`). Corrections en cours de validation : fenêtre passée sans cadre natif (`frame: false`, la barre décorative faisait doublon avec la vraie), pastilles rouge/jaune/vert câblées (fermer = quitter l'app entièrement, réduire, agrandir/restaurer — usage mono-fenêtre, ADR-010). Ajout roadmap (section Addon) : ergonomie du drag de la platine à améliorer plus tard. Validé par Julien.
+- **2026-07-11** — Story 2.6 : modèle événementiel (ADR-015) sans callback natif C++ — le process principal (`src/main/engineEvents.ts`) lit l'état directement sur `nativeEngine` (pas d'IPC, déjà dans ce process) toutes les 200 ms et pousse les changements via `webContents.send`, plutôt que le renderer ne les demande. Émet `TrackLoaded`/`PlaybackStarted`/`PlaybackPaused`/`PlaybackStopped`/`TrackEnded`/`EngineError` (transitions) + `PositionChanged` (en continu) ; `TrackEnded` vs `PlaybackStopped` distingué par heuristique (position proche de la durée). `preload` expose `onEvent()` ; `useDeckState` s'abonne au lieu de sonder — signature de retour inchangée, `Deck.tsx` intact. Aucun changement natif. Validé par Julien : réactivité conservée, transitions bien loguées, `TrackEnded` détecté correctement en fin de piste.
+- **2026-07-11** — Story 2.7 : checklist de validation (robustesse/cas limites, cycle de vie fenêtre, performance) parcourue par Julien, sans code ajouté a priori. Résultat : RAS sur toute la checklist, seul point relevé déjà connu et noté en roadmap (ergonomie du drag de la platine). **Epic 2 terminé** — jalon "mixer deux morceaux depuis l'interface graphique" atteint et confirmé sous contrainte.

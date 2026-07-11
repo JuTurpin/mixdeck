@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
 
 // Story 2.4 — relai pur vers le process principal (voir src/main/index.ts) :
 // chaque méthode ne fait que transmettre l'appel via IPC, aucune logique
@@ -34,7 +35,17 @@ const mixdeck = {
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).
   windowMinimize: (): void => ipcRenderer.send('mixdeck:windowMinimize'),
   windowToggleMaximize: (): void => ipcRenderer.send('mixdeck:windowToggleMaximize'),
-  windowClose: (): void => ipcRenderer.send('mixdeck:windowClose')
+  windowClose: (): void => ipcRenderer.send('mixdeck:windowClose'),
+  // Story 2.6 (ADR-015) — abonnement au flux d'événements poussé par le
+  // process principal (src/main/engineEvents.ts). Retourne une fonction de
+  // désabonnement ; on ne peut pas exposer ipcRenderer brut à travers
+  // contextBridge, d'où ce wrapper.
+  onEvent: (callback: (event: MixdeckEvent) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: MixdeckEvent): void =>
+      callback(payload)
+    ipcRenderer.on(MIXDECK_EVENT_CHANNEL, listener)
+    return () => ipcRenderer.removeListener(MIXDECK_EVENT_CHANNEL, listener)
+  }
 }
 
 contextBridge.exposeInMainWorld('mixdeck', mixdeck)

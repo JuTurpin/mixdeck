@@ -1,7 +1,9 @@
 // Controller (ADR-014) : logique métier entre React et le Bridge (relai IPC
 // exposé par src/preload/index.ts). Un DeckController par deck (A = 0, B = 1).
 export class DeckController {
-  constructor(private readonly deckIndex: number) {}
+  // public : useDeckState.ts (Story 2.6) filtre les événements poussés par
+  // deckIndex.
+  constructor(readonly deckIndex: number) {}
 
   loadTrack(path: string): Promise<string> {
     return window.mixdeck.deckLoadTrack(this.deckIndex, path)
