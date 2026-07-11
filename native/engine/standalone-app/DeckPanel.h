@@ -5,8 +5,9 @@
 
 namespace mixdeck {
 
-/** Minimal transport + volume + filter + pitch controls for one Deck: load / play
-    / stop, status labels, a volume fader (1.2), a filter knob (1.3) and a pitch
+/** Minimal transport + volume + filter + pitch controls for one Deck: load /
+    play / pause / stop / unload, a DeckState label (2.1, ADR-016), a seekable
+    position slider, a volume fader (1.2), a filter knob (1.3) and a pitch
     slider (1.4). Test harness only — not the final Electron/React UI (§6). */
 class DeckPanel : public juce::Component, private juce::Timer {
 public:
@@ -36,9 +37,13 @@ private:
 
     juce::TextButton loadButton { "Charger un fichier..." };
     juce::TextButton playButton { "Play" };
+    juce::TextButton pauseButton { "Pause" };
     juce::TextButton stopButton { "Stop" };
+    juce::TextButton unloadButton { "Unload" };
     juce::Label trackLabel;
+    juce::Label stateLabel;
     juce::Label positionLabel;
+    juce::Slider positionSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
     juce::Slider volumeSlider { juce::Slider::LinearVertical, juce::Slider::NoTextBox };
     juce::Slider filterKnob { juce::Slider::RotaryVerticalDrag, juce::Slider::NoTextBox };
     juce::Label filterLabel;

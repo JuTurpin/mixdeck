@@ -17,6 +17,8 @@ Deck::~Deck() {
 }
 
 juce::String Deck::loadFile(const juce::File& file) {
+    state = DeckState::Loading;
+
     if (auto* reader = formatManager.createReaderFor(file)) {
         auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
         transportSource.stop();
@@ -27,24 +29,53 @@ juce::String Deck::loadFile(const juce::File& file) {
                                    reader->numChannels);
         readerSource = std::move(newSource);
         loadedFileName = file.getFileName();
+        state = DeckState::Ready;
         return {};
     }
 
+    state = DeckState::Error;
     return "Format de fichier non reconnu : " + file.getFileName();
 }
 
+void Deck::unloadTrack() {
+    transportSource.stop();
+    transportSource.setSource(nullptr);
+    readerSource.reset();
+    loadedFileName = {};
+    state = DeckState::Empty;
+}
+
 void Deck::play() {
-    if (readerSource != nullptr)
+    if (readerSource != nullptr) {
         transportSource.start();
+        state = DeckState::Playing;
+    }
+}
+
+void Deck::pause() {
+    transportSource.stop();
+    state = DeckState::Paused;
 }
 
 void Deck::stop() {
     transportSource.stop();
     transportSource.setPosition(0.0);
+    state = DeckState::Stopped;
+}
+
+void Deck::seek(double seconds) {
+    transportSource.setPosition(juce::jlimit(0.0, transportSource.getLengthInSeconds(), seconds));
 }
 
 bool Deck::isPlaying() const {
     return transportSource.isPlaying();
+}
+
+DeckState Deck::getState() const {
+    if (state == DeckState::Playing && !transportSource.isPlaying())
+        state = DeckState::Stopped; // natural end of track reached
+
+    return state;
 }
 
 void Deck::setGain(float gain) {

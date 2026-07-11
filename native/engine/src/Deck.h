@@ -7,10 +7,14 @@
 
 namespace mixdeck {
 
-/** One independent playback deck: loads a single audio file, plays/stops it,
-    applies a gain set by Mixer (fader x crossfader, Story 1.2), a per-deck
+// Engine API state machine (ADR-016) — single source of truth for the UI.
+enum class DeckState { Empty, Loading, Ready, Playing, Paused, Stopped, Error };
+
+/** One independent playback deck: loads a single audio file, plays/pauses/stops
+    it, applies a gain set by Mixer (fader x crossfader, Story 1.2), a per-deck
     resonant filter (Story 1.3), and a "linked speed" pitch via resampling
-    (Story 1.4 — pitch follows speed, like a vinyl). */
+    (Story 1.4 — pitch follows speed, like a vinyl). Exposes a DeckState (2.1,
+    ADR-016) so the future UI never has to reconstruct status from ad hoc flags. */
 class Deck : public juce::AudioSource {
 public:
     explicit Deck(juce::AudioFormatManager& formatManagerToUse);
@@ -18,10 +22,16 @@ public:
 
     // Returns an error message on failure, or an empty string on success.
     juce::String loadFile(const juce::File& file);
+    void unloadTrack();
 
     void play();
+    void pause();
     void stop();
+    void seek(double seconds);
     bool isPlaying() const;
+
+    // Lazily detects natural end-of-track before returning the current state.
+    DeckState getState() const;
 
     // Combined gain applied by Mixer (fader x crossfader) — see Mixer.h.
     void setGain(float gain);
@@ -49,6 +59,7 @@ private:
     juce::TimeSliceThread readAheadThread { "mixdeck-deck-read-ahead" };
     juce::String loadedFileName;
     FilterDSP filter;
+    mutable DeckState state = DeckState::Empty;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Deck)
 };

@@ -1,12 +1,14 @@
 # MixDeck — progress.md
 
 > Tracker d'avancement vivant. À mettre à jour après chaque story (voir `roadmap.md`).
-> Dernière mise à jour : 2026-07-10
+> Dernière mise à jour : 2026-07-11
 
 ## Statut global
 
 **Epic 1 ✅ terminé — jalon "moteur standalone JUCE testable au casque" atteint**
-Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Les 4 stories de l'Epic 1 (lecture 2 pistes, mixer/crossfader, filtre résonant, pitch vitesse liée) sont codées, compilent et **validées à l'oreille par Julien** (ADR-008). Prochaine étape : Epic 2 — intégration Electron (Story 2.1, bridge N-API).
+Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Les 4 stories de l'Epic 1 (lecture 2 pistes, mixer/crossfader, filtre résonant, pitch vitesse liée) sont codées, compilent et **validées à l'oreille par Julien** (ADR-008).
+
+Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Story 2.1 (Engine API côté Deck) codée, compile et **validée par Julien** — y compris non-régression complète des fonctionnalités Epic 1. Prochaine étape : Story 2.2 (Bridge N-API).
 
 ## Suivi par epic / story
 
@@ -18,9 +20,13 @@ Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpi
 | 1 — Moteur standalone | 1.2 Mixer + crossfader | ✅ Fait | `Mixer` (gain calc, pas d'AudioSource) + `Deck::setGain`. Courbes Linéaire/Smooth/Cut validées au casque. |
 | 1 — Moteur standalone | 1.3 Filtre résonant | ✅ Fait | `FilterDSP` (StateVariableTPTFilter), knob unique -1..+1 par deck, centre = bypass réel. Validé au casque. |
 | 1 — Moteur standalone | 1.4 Pitch vitesse liée | ✅ Fait | `Deck::setPitch` via `juce::ResamplingAudioSource` enveloppant `transportSource` (-50%..+50%). Validé au casque. |
-| 2 — Intégration Electron | 2.1 Bridge N-API | ⬜ À faire | Dépend d'Epic 1 |
-| 2 — Intégration Electron | 2.2 UI React 2 decks | ⬜ À faire | Peut démarrer, design dispo |
-| 2 — Intégration Electron | 2.3 Faders/crossfader/filtre connectés | ⬜ À faire | |
+| 2 — Intégration Electron | 2.1 Définition de l'Engine API | ✅ Fait | `Deck` : `DeckState` (ADR-016) + `unloadTrack()`/`pause()`/`seek()`. `Mixer` déjà conforme. Validé (+ non-régression Epic 1). |
+| 2 — Intégration Electron | 2.2 Bridge N-API | ⬜ À faire | Traduction pure, zéro logique métier (ADR-014) |
+| 2 — Intégration Electron | 2.3 Initialisation Electron | ⬜ À faire | |
+| 2 — Intégration Electron | 2.4 Controllers | ⬜ À faire | Logique métier côté JS (ADR-014) |
+| 2 — Intégration Electron | 2.5 Communication UI → Engine | ⬜ À faire | |
+| 2 — Intégration Electron | 2.6 Communication Engine → UI | ⬜ À faire | Modèle événementiel (ADR-015) + machine d'état Deck (ADR-016) |
+| 2 — Intégration Electron | 2.7 Validation fonctionnelle et performances | ⬜ À faire | |
 | 3 — Pitch avancé | 3.1 Time-stretch (lib à choisir) | ⬜ À faire | Décision licence ouverte (ADR-006) |
 | 3 — Pitch avancé | 3.2 Détection BPM | ⬜ À faire | |
 | 3 — Pitch avancé | 3.3 Sync automatique | ⬜ À faire | |
@@ -38,7 +44,7 @@ Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpi
 
 ## Prochaine action
 
-Démarrer l'Epic 2 (intégration Electron) — Story 2.1 : bridge N-API exposant Deck/Mixer/Filtre au JS.
+Démarrer la Story 2.2 (Bridge N-API), avec son propre plan dédié.
 
 ## Journal des mises à jour
 
@@ -49,3 +55,5 @@ Démarrer l'Epic 2 (intégration Electron) — Story 2.1 : bridge N-API exposant
 - **2026-07-10** — Story 1.2 : `mixdeck::Mixer` (calcul de gain seul, pas d'AudioSource) + `Deck::setGain` déléguant à `AudioTransportSource::setGain`. Courbes crossfader Linéaire/Smooth (constant-power)/Cut (scratch, ±8% aux extrêmes). UI harnais : slider volume par deck + crossfader + combo courbe. Validée à l'oreille par Julien (les 3 courbes se comportent comme attendu).
 - **2026-07-10** — Story 1.3 : `mixdeck::FilterDSP` (wrapper `juce::dsp::StateVariableTPTFilter`), knob unique -1..+1 par deck (zone morte centrale = bypass réel, gauche = passe-bas qui se ferme, droite = passe-haut qui s'ouvre, résonance croissante en fin de course). Intégré dans `Deck::getNextAudioBlock` après le gain. UI harnais : knob rotatif "Filtre" par deck. Validée à l'oreille par Julien (comportement nickel).
 - **2026-07-10** — Story 1.4 : pitch "vitesse liée" via `juce::ResamplingAudioSource` (`pitchResampler`) enveloppant `transportSource` dans `Deck` ; `Deck::setPitch(percent)` -50..+50 % → ratio 1.0±0.5 clampé. UI harnais : slider "Pitch" par deck. **Epic 1 terminé** (jalon moteur standalone testable au casque atteint) — validé à l'oreille par Julien.
+- **2026-07-11** — Revue d'architecture de Julien (`docs/update.md`, fusionné puis supprimé) avant démarrage de l'Epic 2 : ADR-013 (contrat Engine API), ADR-014 (couche Controller entre React et Bridge), ADR-015 (modèle événementiel moteur → UI), ADR-016 (machine d'état des Decks). Epic 2 redécoupé en 7 stories dans `roadmap.md`. Aucun changement au code Epic 1.
+- **2026-07-11** — Story 2.1 : `DeckState` (ADR-016) + `Deck::unloadTrack()`/`pause()`/`seek()`, `getState()` détecte aussi la fin de piste naturelle. Harnais de test : boutons Pause/Unload, label d'état, slider de position (seek). `docs/architecture.md` §4.7 mis à jour avec les signatures finalisées. Validé par Julien : nouveaux contrôles OK **et** aucune régression sur les fonctionnalités Epic 1.

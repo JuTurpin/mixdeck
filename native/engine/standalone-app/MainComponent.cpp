@@ -31,7 +31,7 @@ MainComponent::MainComponent() {
     crossfaderCurveBox.onChange = [this] { crossfaderCurveChanged(); };
     addAndMakeVisible(crossfaderCurveBox);
 
-    setSize(700, 430);
+    setSize(700, 490);
     setAudioChannels(0, 2); // no input, stereo output
 }
 
