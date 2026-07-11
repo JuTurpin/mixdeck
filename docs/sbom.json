@@ -42,6 +42,64 @@
           "value": "Epic 1 — Story 1.1"
         }
       ]
+    },
+    {
+      "type": "library",
+      "name": "node-addon-api",
+      "version": "8.9.0",
+      "purl": "pkg:npm/node-addon-api@8.9.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/nodejs/node-addon-api"
+        },
+        {
+          "type": "advisories",
+          "url": "https://github.com/nodejs/node-addon-api/security"
+        }
+      ],
+      "licenses": [
+        { "license": { "id": "MIT" } }
+      ],
+      "properties": [
+        {
+          "name": "vendoring",
+          "value": "npm dependency, native/engine/package.json, exact pinned version (no ^/~ range)"
+        },
+        {
+          "name": "epic",
+          "value": "Epic 2 — Story 2.2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cmake-js",
+      "version": "8.0.0",
+      "purl": "pkg:npm/cmake-js@8.0.0",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/cmake-js/cmake-js"
+        },
+        {
+          "type": "advisories",
+          "url": "https://github.com/cmake-js/cmake-js/security"
+        }
+      ],
+      "licenses": [
+        { "license": { "id": "MIT" } }
+      ],
+      "properties": [
+        {
+          "name": "vendoring",
+          "value": "npm devDependency, native/engine/package.json, exact pinned version (no ^/~ range) — build tool, not shipped in the compiled .node"
+        },
+        {
+          "name": "epic",
+          "value": "Epic 2 — Story 2.2"
+        }
+      ]
     }
   ]
 }

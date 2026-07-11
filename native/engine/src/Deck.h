@@ -10,6 +10,10 @@ namespace mixdeck {
 // Engine API state machine (ADR-016) — single source of truth for the UI.
 enum class DeckState { Empty, Loading, Ready, Playing, Paused, Stopped, Error };
 
+// "EMPTY"/"LOADING"/... — shared by the standalone harness (DeckPanel) and the
+// Bridge (NodeBinding, Story 2.2).
+juce::String toString(DeckState state);
+
 /** One independent playback deck: loads a single audio file, plays/pauses/stops
     it, applies a gain set by Mixer (fader x crossfader, Story 1.2), a per-deck
     resonant filter (Story 1.3), and a "linked speed" pitch via resampling

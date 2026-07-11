@@ -10,19 +10,6 @@ juce::String formatSeconds(double seconds) {
     const auto totalSeconds = static_cast<int>(seconds);
     return juce::String::formatted("%02d:%02d", totalSeconds / 60, totalSeconds % 60);
 }
-
-juce::String deckStateToString(DeckState state) {
-    switch (state) {
-        case DeckState::Empty:   return "EMPTY";
-        case DeckState::Loading: return "LOADING";
-        case DeckState::Ready:   return "READY";
-        case DeckState::Playing: return "PLAYING";
-        case DeckState::Paused:  return "PAUSED";
-        case DeckState::Stopped: return "STOPPED";
-        case DeckState::Error:   return "ERROR";
-    }
-    return {};
-}
 } // namespace
 
 DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& deckToControl)
@@ -172,7 +159,7 @@ void DeckPanel::updateTransportButtons() {
 
 void DeckPanel::timerCallback() {
     updateTransportButtons();
-    stateLabel.setText(deckStateToString(deck.getState()), juce::dontSendNotification);
+    stateLabel.setText(toString(deck.getState()), juce::dontSendNotification);
     positionLabel.setText(formatSeconds(deck.getPositionSeconds()) + " / "
                                + formatSeconds(deck.getLengthSeconds()),
                            juce::dontSendNotification);

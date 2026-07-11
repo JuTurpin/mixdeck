@@ -4,19 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Avant l'Epic 2 (intégration Electron), une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`), et la **Story 2.1 (Engine API côté Deck : `DeckState`, `unloadTrack`/`pause`/`seek`) est terminée et validée**, y compris non-régression complète d'Epic 1. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
+**Epic 1 ("moteur audio standalone JUCE, hors Electron") est terminé** — les 4 stories (1.1 lecture 2 pistes, 1.2 Mixer/crossfader, 1.3 filtre résonant, 1.4 pitch vitesse liée) sont codées, compilées et **validées à l'oreille par Julien**. Jalon "moteur standalone testable au casque" atteint. Avant l'Epic 2 (intégration Electron), une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). **Stories 2.1 (Engine API côté Deck) et 2.2 (Bridge N-API, `Engine`/`NodeBinding.cpp`, build cmake-js) sont terminées et validées** par Julien, sans régression sur Epic 1. Voir `docs/progress.md` pour l'état story par story à jour. Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE est vendorisé en submodule dans `native/engine/JUCE`.
 
 ## Commandes (moteur natif `native/engine/`)
 
+Harnais de test JUCE standalone (Epic 1) :
 ```
 brew install cmake ninja        # une fois, si absents
 git submodule update --init --recursive
 cmake -S native/engine -B native/engine/build -G Ninja
 cmake --build native/engine/build
-open "native/engine/build/MixDeckStandalone_artefacts/MixDeck Standalone.app"
+open "native/engine/build/MixDeckStandalone_artefacts/Release/MixDeck Standalone.app"
 ```
 
-Il n'y a pas encore de package.json/npm racine (Electron arrive en Epic 2) : tout le build actuel passe par CMake. Pas de suite de tests automatisés pour l'instant — la validation de chaque story est manuelle (écoute au casque, voir `docs/progress.md`).
+Bridge N-API (Story 2.2, `native/engine/package.json`) — même dossier `build/`, configuré via cmake-js plutôt que cmake directement :
+```
+cd native/engine
+npm install                     # node-addon-api + cmake-js, épinglés (ADR-012)
+npx cmake-js compile
+node test-bridge.js /chemin/vers/a.wav /chemin/vers/b.wav   # validation manuelle sans Electron/UI
+```
+Le module compilé est `native/engine/build/Release/mixdeck_bridge.node`. Buildé ici contre le Node système ; à reconstruire contre l'ABI Node d'Electron (`cmake-js --runtime=electron`) une fois l'Epic 2 arrivé à la Story 2.3.
+
+**Piège** : si `native/engine/build/` a déjà été configuré par un `cmake` direct (sans cmake-js), relancer `cmake-js compile` dessus ne repasse pas par sa propre étape de configuration (il saute droit au build) et les variables `CMAKE_JS_*` ne sont jamais injectées → le target `mixdeck_bridge` n'est pas créé, silencieusement. Supprimer `native/engine/build/` avant de rebasculer d'un mode de build à l'autre.
+
+Il n'y a pas encore de package.json/npm racine (Electron arrive en Story 2.3) — le `package.json` de `native/engine/` ne concerne que le Bridge. Pas de suite de tests automatisés pour l'instant — la validation de chaque story est manuelle (écoute au casque, voir `docs/progress.md`).
 
 ## Documentation de référence — à lire avant toute modification
 
@@ -58,8 +70,9 @@ mixdeck/
 ├── apps/electron-ui/       # (Epic 2, pas encore créé) Electron + React + TS — src/components, src/controllers (ADR-014), src/state, src/bridge
 ├── native/engine/          # Moteur audio C++/JUCE
 │   ├── JUCE/               # submodule, pinné (voir docs/sbom.json)
-│   ├── src/                # Deck.cpp (1.1, + pitchResampler 1.4, + DeckState/unloadTrack/pause/seek 2.1), Mixer.cpp (1.2, calcul de gain seul, pas d'AudioSource), FilterDSP.cpp (1.3, StateVariableTPTFilter) — TimeStretch/PluginHost/NodeBinding ajoutés au fil des stories suivantes (Epic 3/4)
+│   ├── src/                # Deck.cpp (1.1 + 1.4 pitchResampler + 2.1 DeckState/unloadTrack/pause/seek), Mixer.cpp (1.2), FilterDSP.cpp (1.3), Engine.cpp (2.2, graphe audio headless), NodeBinding.cpp (2.2, Bridge N-API) — TimeStretch/PluginHost ajoutés en Epic 3/4
 │   ├── standalone-app/     # harnais de test JUCE (GUI minimale, hors Electron) — Epic 1 uniquement
+│   ├── package.json        # deps du Bridge (node-addon-api, cmake-js) — pas le package.json Electron, qui viendra en 2.3
 │   └── CMakeLists.txt
 ├── db/                     # (Epic 5, pas encore créé) SQLite
 ├── design/export-html/     # Exports Claude Design — référence visuelle
@@ -107,7 +120,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.2 (Bridge N-API).
+**Prochaine action (voir `progress.md`)** : Epic 2, Story 2.3 (Initialisation Electron).
 
 ## Contraintes non-fonctionnelles
 

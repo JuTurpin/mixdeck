@@ -1,0 +1,15 @@
+{
+  "name": "mixdeck-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bridge N-API vers le moteur audio natif MixDeck (JUCE) — voir docs/architecture.md et docs/decision.md ADR-002/013/014",
+  "scripts": {
+    "build": "cmake-js compile"
+  },
+  "dependencies": {
+    "node-addon-api": "8.9.0"
+  },
+  "devDependencies": {
+    "cmake-js": "8.0.0"
+  }
+}

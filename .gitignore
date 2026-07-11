@@ -16,3 +16,6 @@ xcuserdata/
 # Editors
 .vscode/
 .idea/
+
+# Fichiers audio de test personnels (gros binaires, pas du code source)
+/test/

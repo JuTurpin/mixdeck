@@ -6,6 +6,19 @@ namespace {
 constexpr int readAheadBufferSize = 32768;
 }
 
+juce::String toString(DeckState state) {
+    switch (state) {
+        case DeckState::Empty:   return "EMPTY";
+        case DeckState::Loading: return "LOADING";
+        case DeckState::Ready:   return "READY";
+        case DeckState::Playing: return "PLAYING";
+        case DeckState::Paused:  return "PAUSED";
+        case DeckState::Stopped: return "STOPPED";
+        case DeckState::Error:   return "ERROR";
+    }
+    return {};
+}
+
 Deck::Deck(juce::AudioFormatManager& formatManagerToUse)
     : formatManager(formatManagerToUse) {
     readAheadThread.startThread(juce::Thread::Priority::normal);
