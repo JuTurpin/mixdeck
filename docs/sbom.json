@@ -100,6 +100,111 @@
           "value": "Epic 2 — Story 2.2"
         }
       ]
+    },
+    {
+      "type": "application",
+      "name": "electron",
+      "version": "43.1.0",
+      "purl": "pkg:npm/electron@43.1.0",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/electron/electron" },
+        { "type": "advisories", "url": "https://github.com/electron/electron/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "19.2.7",
+      "purl": "pkg:npm/react@19.2.7",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/facebook/react" },
+        { "type": "advisories", "url": "https://github.com/facebook/react/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm dependency, apps/electron-ui/package.json, exact pinned version" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react-dom",
+      "version": "19.2.7",
+      "purl": "pkg:npm/react-dom@19.2.7",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/facebook/react" },
+        { "type": "advisories", "url": "https://github.com/facebook/react/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm dependency, apps/electron-ui/package.json, exact pinned version" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "7.0.2",
+      "purl": "pkg:npm/typescript@7.0.2",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/microsoft/TypeScript" },
+        { "type": "advisories", "url": "https://github.com/microsoft/TypeScript/security" }
+      ],
+      "licenses": [{ "license": { "id": "Apache-2.0" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "electron-vite",
+      "version": "5.0.0",
+      "purl": "pkg:npm/electron-vite@5.0.0",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/alex8088/electron-vite" },
+        { "type": "advisories", "url": "https://github.com/alex8088/electron-vite/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — dev build tool (main/preload/renderer + HMR)" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "vite",
+      "version": "7.3.6",
+      "purl": "pkg:npm/vite@7.3.6",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/vitejs/vite" },
+        { "type": "advisories", "url": "https://github.com/vitejs/vite/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — pinned below latest (8.x) for electron-vite@5.0.0 peer compatibility" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitejs/plugin-react",
+      "version": "5.2.0",
+      "purl": "pkg:npm/%40vitejs/plugin-react@5.2.0",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/vitejs/vite-plugin-react" },
+        { "type": "advisories", "url": "https://github.com/vitejs/vite-plugin-react/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — pinned below latest (6.x) for vite@7 peer compatibility" },
+        { "name": "epic", "value": "Epic 2 — Story 2.3" }
+      ]
     }
   ]
 }

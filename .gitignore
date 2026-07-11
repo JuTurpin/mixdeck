@@ -7,6 +7,10 @@ node_modules/
 # CMake build output (native/engine/build/ etc.) — not docs/build/, which holds
 # the (versioned) docx-generation script, not build artifacts.
 native/**/build/
+native/**/build-electron/
+
+# electron-vite build output
+apps/**/out/
 
 # Xcode
 xcuserdata/

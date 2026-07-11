@@ -15,35 +15,45 @@ Point structurant : l'hébergement de vrais plugins impose un **moteur audio nat
 ```
 mixdeck/
 ├── apps/
-│   └── electron-ui/            # Interface Electron + React + TypeScript
+│   └── electron-ui/             # Interface Electron + React + TypeScript (scaffoldé via electron-vite, Story 2.3)
 │       ├── src/
-│       │   ├── components/     # Deck, Crossfader, FilterKnob, PluginRack, LibraryBrowser...
-│       │   ├── controllers/    # Logique métier (ADR-014) — entre React et le Bridge
-│       │   ├── state/          # Store (paramètres UI, statut de connexion au moteur, machine d'état Deck — ADR-016)
-│       │   └── bridge/         # Wrapper JS autour du module natif (bridge.node) — traduction pure, zéro logique métier
-│       └── package.json
+│       │   ├── main/            # Process principal Electron (fenêtre, diagnostic de compatibilité du Bridge)
+│       │   ├── preload/         # Script preload (contextIsolation, rien d'exposé avant Story 2.4)
+│       │   └── renderer/        # React
+│       │       └── src/
+│       │           ├── components/   # Deck, Crossfader, FilterKnob, PluginRack, LibraryBrowser... (vide, Story 2.5+)
+│       │           ├── controllers/  # Logique métier (ADR-014) — entre React et le Bridge (vide, Story 2.4)
+│       │           ├── state/        # Store, machine d'état Deck — ADR-016 (vide, Story 2.4/2.6)
+│       │           └── bridge/       # Wrapper JS autour du module natif — traduction pure (vide, Story 2.4/2.5)
+│       ├── electron.vite.config.ts
+│       └── package.json          # electron, react, react-dom, electron-vite, vite... versions exactes (ADR-012)
 ├── native/
 │   └── engine/                  # Moteur audio C++ / JUCE
+│       ├── JUCE/                 # submodule, pinné (voir docs/sbom.json)
 │       ├── src/
 │       │   ├── Deck.cpp/.h
 │       │   ├── Mixer.cpp/.h
 │       │   ├── FilterDSP.cpp/.h
-│       │   ├── TimeStretch.cpp/.h
-│       │   ├── PluginHost.cpp/.h
-│       │   └── NodeBinding.cpp  # Point d'entrée N-API (node-addon-api)
-│       ├── CMakeLists.txt
-│       └── binding.gyp
+│       │   ├── Engine.cpp/.h     # Graphe audio headless (Story 2.2), utilisé par le Bridge
+│       │   ├── NodeBinding.cpp   # Point d'entrée N-API (node-addon-api) — Bridge, Story 2.2
+│       │   ├── TimeStretch.cpp/.h    # à venir, Epic 3
+│       │   └── PluginHost.cpp/.h     # à venir, Epic 4
+│       ├── standalone-app/       # Harnais de test JUCE (GUI minimale, hors Electron) — Epic 1
+│       ├── package.json          # node-addon-api, cmake-js — build du Bridge (Story 2.2)
+│       └── CMakeLists.txt
 ├── db/
-│   └── schema.sql               # Bibliothèque de sons (SQLite)
+│   └── schema.sql               # Bibliothèque de sons (SQLite) — à venir, Epic 5
 ├── design/
 │   └── export-html/             # Export Claude Design — référence visuelle et composants
-├── docs/
-│   ├── architecture.md
-│   ├── roadmap.md
-│   ├── decision.md
-│   └── progress.md
-└── package.json
+└── docs/
+    ├── architecture.md
+    ├── roadmap.md
+    ├── decision.md
+    ├── progress.md
+    └── sbom.json
 ```
+
+Pas de `package.json`/workspace racine : `native/engine/` et `apps/electron-ui/` restent deux paquets npm indépendants (chacun sa propre installation/build), cohérent avec l'absence de monorepo tooling dans ce projet mono-développeur.
 
 ## 3. Couches applicatives
 

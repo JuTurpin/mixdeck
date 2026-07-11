@@ -8,7 +8,7 @@
 **Epic 1 ✅ terminé — jalon "moteur standalone JUCE testable au casque" atteint**
 Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Les 4 stories de l'Epic 1 (lecture 2 pistes, mixer/crossfader, filtre résonant, pitch vitesse liée) sont codées, compilent et **validées à l'oreille par Julien** (ADR-008).
 
-Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Story 2.1 (Engine API côté Deck) et **Story 2.2 (Bridge N-API) sont codées, compilent et validées par Julien** — lecture des 2 decks pilotée depuis un script Node (`test-bridge.js`), sans fenêtre JUCE, sans régression sur le harnais standalone Epic 1. Prochaine étape : Story 2.3 (Initialisation Electron).
+Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Stories 2.1 (Engine API côté Deck), 2.2 (Bridge N-API) et **2.3 (Initialisation Electron) sont codées, compilent et validées par Julien** — première fenêtre Electron ouverte (`apps/electron-ui`), Bridge chargé avec succès sous l'ABI Node d'Electron. Prochaine étape : Story 2.4 (Controllers).
 
 ## Suivi par epic / story
 
@@ -22,7 +22,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 | 1 — Moteur standalone | 1.4 Pitch vitesse liée | ✅ Fait | `Deck::setPitch` via `juce::ResamplingAudioSource` enveloppant `transportSource` (-50%..+50%). Validé au casque. |
 | 2 — Intégration Electron | 2.1 Définition de l'Engine API | ✅ Fait | `Deck` : `DeckState` (ADR-016) + `unloadTrack()`/`pause()`/`seek()`. `Mixer` déjà conforme. Validé (+ non-régression Epic 1). |
 | 2 — Intégration Electron | 2.2 Bridge N-API | ✅ Fait | `Engine` (headless) + `NodeBinding.cpp` (cmake-js). Validé via `test-bridge.js` : 2 pistes chargées/jouées depuis Node, sans fenêtre. |
-| 2 — Intégration Electron | 2.3 Initialisation Electron | ⬜ À faire | |
+| 2 — Intégration Electron | 2.3 Initialisation Electron | ✅ Fait | `apps/electron-ui` (electron-vite, React+TS). Bridge reconstruit pour l'ABI Electron (`build-electron/`). Fenêtre + diagnostic Bridge validés par Julien. |
 | 2 — Intégration Electron | 2.4 Controllers | ⬜ À faire | Logique métier côté JS (ADR-014) |
 | 2 — Intégration Electron | 2.5 Communication UI → Engine | ⬜ À faire | |
 | 2 — Intégration Electron | 2.6 Communication Engine → UI | ⬜ À faire | Modèle événementiel (ADR-015) + machine d'état Deck (ADR-016) |
@@ -44,7 +44,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 
 ## Prochaine action
 
-Démarrer la Story 2.3 (Initialisation Electron), avec son propre plan dédié.
+Démarrer la Story 2.4 (Controllers), avec son propre plan dédié.
 
 ## Journal des mises à jour
 
@@ -58,3 +58,4 @@ Démarrer la Story 2.3 (Initialisation Electron), avec son propre plan dédié.
 - **2026-07-11** — Revue d'architecture de Julien (`docs/update.md`, fusionné puis supprimé) avant démarrage de l'Epic 2 : ADR-013 (contrat Engine API), ADR-014 (couche Controller entre React et Bridge), ADR-015 (modèle événementiel moteur → UI), ADR-016 (machine d'état des Decks). Epic 2 redécoupé en 7 stories dans `roadmap.md`. Aucun changement au code Epic 1.
 - **2026-07-11** — Story 2.1 : `DeckState` (ADR-016) + `Deck::unloadTrack()`/`pause()`/`seek()`, `getState()` détecte aussi la fin de piste naturelle. Harnais de test : boutons Pause/Unload, label d'état, slider de position (seek). `docs/architecture.md` §4.7 mis à jour avec les signatures finalisées. Validé par Julien : nouveaux contrôles OK **et** aucune régression sur les fonctionnalités Epic 1.
 - **2026-07-11** — Story 2.2 : `mixdeck::Engine` (graphe audio headless, `native/engine/src/Engine.h/.cpp`) + `NodeBinding.cpp` (Bridge N-API, `node-addon-api`, traduction pure — ADR-014). Build via cmake-js (`native/engine/package.json`, deps épinglées, `docs/sbom.json` à jour). Validé par Julien via `test-bridge.js` : 2 pistes chargées/jouées depuis un script Node, sans fenêtre JUCE ; harnais standalone Epic 1 toujours fonctionnel.
+- **2026-07-11** — Story 2.3 : `apps/electron-ui` scaffoldé (electron-vite, React+TS ; `vite@7.3.6`/`@vitejs/plugin-react@5.2.0` épinglés pour compatibilité peer avec `electron-vite@5.0.0`). `src/main/index.ts` ouvre la fenêtre et charge le Bridge (reconstruit pour l'ABI Electron dans `native/engine/build-electron/`) à titre de diagnostic. Écran minimal React (thème sombre). Validé par Julien : fenêtre ouverte, `Bridge OK, deck A state = EMPTY` dans les logs, fermeture propre.
