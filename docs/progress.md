@@ -8,7 +8,7 @@
 **Epic 1 ✅ terminé — jalon "moteur standalone JUCE testable au casque" atteint**
 Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Les 4 stories de l'Epic 1 (lecture 2 pistes, mixer/crossfader, filtre résonant, pitch vitesse liée) sont codées, compilent et **validées à l'oreille par Julien** (ADR-008).
 
-Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Stories 2.1 (Engine API côté Deck), 2.2 (Bridge N-API), 2.3 (Initialisation Electron) et **2.4 (Controllers) sont codées, compilent et validées par Julien** — chaîne complète React → Controller → IPC → Bridge → moteur JUCE opérationnelle (chargement, transport, volume, filtre, pitch, crossfader). Prochaine étape : Story 2.5 (vraie UI calquée sur l'export Claude Design).
+Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Stories 2.1 à **2.5 sont codées, compilent et validées par Julien** — la vraie UI (Deck/Mixer/Filtre, calquée sur l'export Claude Design) est en place, fenêtre sans cadre natif avec contrôles fonctionnels (fermer/réduire/agrandir). Prochaine étape : Story 2.6 (modèle événementiel, remplace le polling).
 
 ## Suivi par epic / story
 
@@ -24,7 +24,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 | 2 — Intégration Electron | 2.2 Bridge N-API | ✅ Fait | `Engine` (headless) + `NodeBinding.cpp` (cmake-js). Validé via `test-bridge.js` : 2 pistes chargées/jouées depuis Node, sans fenêtre. |
 | 2 — Intégration Electron | 2.3 Initialisation Electron | ✅ Fait | `apps/electron-ui` (electron-vite, React+TS). Bridge reconstruit pour l'ABI Electron (`build-electron/`). Fenêtre + diagnostic Bridge validés par Julien. |
 | 2 — Intégration Electron | 2.4 Controllers | ✅ Fait | `DeckController`/`MixerController` + relai IPC (main/preload). État par polling temporaire (`useDeckState`). Validé par Julien : chargement, transport, volume, filtre, pitch, crossfader tous fonctionnels. |
-| 2 — Intégration Electron | 2.5 Communication UI → Engine | ⬜ À faire | |
+| 2 — Intégration Electron | 2.5 Communication UI → Engine | ✅ Fait | Vraie UI (`Deck`/`Crossfader`/`ConsoleMaster`/`FilterKnob`/`TitleBar`), sélecteur de fichier natif, fenêtre sans cadre natif (fermer/réduire/agrandir via IPC). Validée par Julien. |
 | 2 — Intégration Electron | 2.6 Communication Engine → UI | ⬜ À faire | Modèle événementiel (ADR-015) + machine d'état Deck (ADR-016) |
 | 2 — Intégration Electron | 2.7 Validation fonctionnelle et performances | ⬜ À faire | |
 | 3 — Pitch avancé | 3.1 Time-stretch (lib à choisir) | ⬜ À faire | Décision licence ouverte (ADR-006) |
@@ -44,7 +44,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 
 ## Prochaine action
 
-Démarrer la Story 2.5 (Communication UI → Engine — vraie UI calquée sur l'export Claude Design), avec son propre plan dédié.
+Démarrer la Story 2.6 (Communication Engine → UI — modèle événementiel ADR-015, remplace le polling de `useDeckState`), avec son propre plan dédié.
 
 ## Journal des mises à jour
 
@@ -60,3 +60,4 @@ Démarrer la Story 2.5 (Communication UI → Engine — vraie UI calquée sur l'
 - **2026-07-11** — Story 2.2 : `mixdeck::Engine` (graphe audio headless, `native/engine/src/Engine.h/.cpp`) + `NodeBinding.cpp` (Bridge N-API, `node-addon-api`, traduction pure — ADR-014). Build via cmake-js (`native/engine/package.json`, deps épinglées, `docs/sbom.json` à jour). Validé par Julien via `test-bridge.js` : 2 pistes chargées/jouées depuis un script Node, sans fenêtre JUCE ; harnais standalone Epic 1 toujours fonctionnel.
 - **2026-07-11** — Story 2.3 : `apps/electron-ui` scaffoldé (electron-vite, React+TS ; `vite@7.3.6`/`@vitejs/plugin-react@5.2.0` épinglés pour compatibilité peer avec `electron-vite@5.0.0`). `src/main/index.ts` ouvre la fenêtre et charge le Bridge (reconstruit pour l'ABI Electron dans `native/engine/build-electron/`) à titre de diagnostic. Écran minimal React (thème sombre). Validé par Julien : fenêtre ouverte, `Bridge OK, deck A state = EMPTY` dans les logs, fermeture propre.
 - **2026-07-11** — Story 2.4 : relai IPC (`ipcMain.handle`/`contextBridge`) pour les 13 méthodes de l'Engine API, traduction pure (ADR-014). `DeckController`/`MixerController` côté renderer (`src/renderer/src/controllers/`). État rafraîchi par polling temporaire (`useDeckState`, ~300 ms — remplacé par le modèle événementiel en Story 2.6). UI de test minimale (inputs bruts) dans `App.tsx`. Validé par Julien : chargement d'un son par deck, fader, filtre, pitch, crossfader, états bien reflétés — chaîne React → Controller → IPC → Bridge → moteur entièrement opérationnelle.
+- **2026-07-11** — Story 2.5 : vraie UI calquée sur l'export Claude Design, scope limité à Deck/Mixer/Filtre (BPM/clé, waveform, hot cues, EQ, effets, vumètres, bibliothèque absents — pas de moteur derrière, décision actée avec Julien). Nouveaux composants `TitleBar`/`Deck`/`FilterKnob`/`Crossfader`/`ConsoleMaster`. Sélecteur de fichier natif (`pickFile` + `DeckController.pickAndLoadTrack`). Corrections en cours de validation : fenêtre passée sans cadre natif (`frame: false`, la barre décorative faisait doublon avec la vraie), pastilles rouge/jaune/vert câblées (fermer = quitter l'app entièrement, réduire, agrandir/restaurer — usage mono-fenêtre, ADR-010). Ajout roadmap (section Addon) : ergonomie du drag de la platine à améliorer plus tard. Validé par Julien.

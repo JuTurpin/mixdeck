@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 
 function createWindow(): void {
@@ -7,6 +7,9 @@ function createWindow(): void {
     height: 600,
     show: false,
     backgroundColor: '#0d0e11',
+    // La fenêtre native n'a pas de titre à afficher — TitleBar.tsx fournit déjà
+    // la barre décorative (feux macOS factices) prévue par le mock (§6).
+    frame: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -22,6 +25,16 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Sans cadre natif, TitleBar.tsx (feux macOS factices) relaie ces 3
+  // commandes — usage strictement personnel mono-fenêtre (ADR-010) : fermer
+  // quitte toute l'app, pas seulement la fenêtre (voir window-all-closed).
+  ipcMain.on('mixdeck:windowMinimize', () => mainWindow.minimize())
+  ipcMain.on('mixdeck:windowToggleMaximize', () => {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize()
+    else mainWindow.maximize()
+  })
+  ipcMain.on('mixdeck:windowClose', () => mainWindow.close())
 }
 
 // Story 2.4 — relai IPC vers le Bridge natif (Story 2.2). Le module ne peut
@@ -65,10 +78,25 @@ function registerBridgeHandlers(nativeEngine: any): void {
   }
 }
 
+// Story 2.5 — le mock Claude Design ne montre pas de champ de saisie pour
+// charger un morceau (ça viendrait de la bibliothèque, Epic 5, absente ici) :
+// un sélecteur de fichier natif le remplace. Capacité OS/Electron, pas
+// logique métier.
+function registerFilePickerHandler(): void {
+  ipcMain.handle('mixdeck:pickFile', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'flac', 'aif', 'aiff'] }]
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+}
+
 app.whenReady().then(() => {
   try {
     const nativeEngine = createNativeEngine()
     registerBridgeHandlers(nativeEngine)
+    registerFilePickerHandler()
     console.log('[MixDeck] Bridge OK, deck A state =', nativeEngine.deckGetState(0))
   } catch (error) {
     console.error('[MixDeck] Bridge failed to load:', error)
@@ -81,6 +109,9 @@ app.whenReady().then(() => {
   })
 })
 
+// Usage strictement personnel, mono-fenêtre (ADR-010) : fermer la fenêtre
+// quitte toute l'application, y compris sur macOS (pas le comportement
+// standard qui laisserait l'app active en arrière-plan).
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })

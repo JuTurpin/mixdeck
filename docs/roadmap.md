@@ -95,3 +95,4 @@ Addons a voir quand tout sera fonctionnel, il s'agit de fonctionnalité a ajoute
 - il faudrait avoir un affichage qui peut donner des infos (a voir commment changer les infos afficher mais au moins pouvoir montrer la répartition du fader)
 - pouvoir mettre une loop sur un morceau, ou un certain nombre de secondes
 - définir des raccourcis clavier.
+- rendre le glisser de la platine (scratch/seek, Story 2.5) plus ergonomique — fonctionnel mais peu intuitif en l'état (sensibilité du drag, retour visuel pendant le geste).

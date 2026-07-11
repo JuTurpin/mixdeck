@@ -12,6 +12,9 @@ native/**/build-electron/
 # electron-vite build output
 apps/**/out/
 
+# TypeScript incremental build cache (tsc --build)
+*.tsbuildinfo
+
 # Xcode
 xcuserdata/
 *.xcodeproj/

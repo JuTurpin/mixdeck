@@ -28,7 +28,13 @@ const mixdeck = {
   mixerSetCrossfaderPosition: (position: number): Promise<void> =>
     ipcRenderer.invoke('mixdeck:mixerSetCrossfaderPosition', position),
   mixerSetCrossfaderCurve: (curve: string): Promise<void> =>
-    ipcRenderer.invoke('mixdeck:mixerSetCrossfaderCurve', curve)
+    ipcRenderer.invoke('mixdeck:mixerSetCrossfaderCurve', curve),
+  // Story 2.5 — sélecteur de fichier natif (dialog.showOpenDialog côté main).
+  pickFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickFile'),
+  // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).
+  windowMinimize: (): void => ipcRenderer.send('mixdeck:windowMinimize'),
+  windowToggleMaximize: (): void => ipcRenderer.send('mixdeck:windowToggleMaximize'),
+  windowClose: (): void => ipcRenderer.send('mixdeck:windowClose')
 }
 
 contextBridge.exposeInMainWorld('mixdeck', mixdeck)

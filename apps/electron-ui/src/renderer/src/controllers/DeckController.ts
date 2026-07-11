@@ -7,6 +7,15 @@ export class DeckController {
     return window.mixdeck.deckLoadTrack(this.deckIndex, path)
   }
 
+  // Ouvre le sélecteur de fichier natif puis charge le morceau choisi.
+  // Retourne null si l'utilisateur annule, sinon le message d'erreur du
+  // Bridge ("" = succès) — même convention que loadTrack().
+  async pickAndLoadTrack(): Promise<string | null> {
+    const path = await window.mixdeck.pickFile()
+    if (!path) return null
+    return this.loadTrack(path)
+  }
+
   unloadTrack(): Promise<void> {
     return window.mixdeck.deckUnloadTrack(this.deckIndex)
   }

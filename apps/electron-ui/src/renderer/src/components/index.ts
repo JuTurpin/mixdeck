@@ -1,2 +1,5 @@
-// Story 2.5+ — composants Deck/Crossfader/FilterKnob/PluginRack/LibraryBrowser (architecture.md §6). Vide pour l'instant.
-export {}
+export { default as TitleBar } from './TitleBar'
+export { default as FilterKnob } from './FilterKnob'
+export { default as Deck } from './Deck'
+export { default as Crossfader } from './Crossfader'
+export { default as ConsoleMaster } from './ConsoleMaster'
