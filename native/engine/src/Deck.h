@@ -4,6 +4,7 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "FilterDSP.h"
+#include "TimeStretch.h"
 
 namespace mixdeck {
 
@@ -14,11 +15,22 @@ enum class DeckState { Empty, Loading, Ready, Playing, Paused, Stopped, Error };
 // Bridge (NodeBinding, Story 2.2).
 juce::String toString(DeckState state);
 
+// Story 3.1 (ADR-006) — which algorithm interprets the pitch slider:
+// LinkedSpeed (Story 1.4, default) changes speed and pitch together, like a
+// vinyl. Independent (SoundTouch) changes tempo while keeping pitch fixed.
+enum class PitchMode { LinkedSpeed, Independent };
+
+// "linked"/"independent" — shared by the standalone harness (DeckPanel) and
+// the Bridge (NodeBinding).
+juce::String toString(PitchMode mode);
+
 /** One independent playback deck: loads a single audio file, plays/pauses/stops
     it, applies a gain set by Mixer (fader x crossfader, Story 1.2), a per-deck
-    resonant filter (Story 1.3), and a "linked speed" pitch via resampling
-    (Story 1.4 — pitch follows speed, like a vinyl). Exposes a DeckState (2.1,
-    ADR-016) so the future UI never has to reconstruct status from ad hoc flags. */
+    resonant filter (Story 1.3), and a pitch slider that can follow either mode:
+    "linked speed" via resampling (Story 1.4 — pitch follows speed, like a
+    vinyl) or independent time-stretch via SoundTouch (Story 3.1 — tempo
+    changes without shifting pitch). Exposes a DeckState (2.1, ADR-016) so the
+    future UI never has to reconstruct status from ad hoc flags. */
 class Deck : public juce::AudioSource {
 public:
     explicit Deck(juce::AudioFormatManager& formatManagerToUse);
@@ -43,8 +55,13 @@ public:
     // -1..+1, 0 = neutral — see FilterDSP.h.
     void setFilterKnob(float value);
 
-    // -50..+50 (%), 0 = normal speed. Pitch follows speed (resampling), like a vinyl.
+    // -50..+50 (%), 0 = normal speed. Interpreted according to pitchMode:
+    // LinkedSpeed (resampling, like a vinyl) or Independent (SoundTouch).
     void setPitch(float percent);
+
+    // Switches which algorithm interprets setPitch()'s percent (Story 3.1).
+    void setPitchMode(PitchMode mode);
+    PitchMode getPitchMode() const { return pitchMode; }
 
     double getPositionSeconds() const;
     double getLengthSeconds() const;
@@ -63,6 +80,8 @@ private:
     juce::TimeSliceThread readAheadThread { "mixdeck-deck-read-ahead" };
     juce::String loadedFileName;
     FilterDSP filter;
+    TimeStretch timeStretch;
+    PitchMode pitchMode = PitchMode::LinkedSpeed; // default = unchanged Epic 1 behaviour
     mutable DeckState state = DeckState::Empty;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Deck)

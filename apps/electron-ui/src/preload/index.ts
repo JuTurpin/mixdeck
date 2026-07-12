@@ -24,6 +24,10 @@ const mixdeck = {
     ipcRenderer.invoke('mixdeck:deckSetFilter', deckIndex, value),
   deckSetPitch: (deckIndex: number, percent: number): Promise<void> =>
     ipcRenderer.invoke('mixdeck:deckSetPitch', deckIndex, percent),
+  // Story 3.1 (ADR-006) — bascule entre pitch "vitesse liée" (défaut) et
+  // "indépendant" (SoundTouch, tempo sans décaler la hauteur).
+  deckSetPitchMode: (deckIndex: number, mode: 'linked' | 'independent'): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckSetPitchMode', deckIndex, mode),
   mixerSetDeckVolume: (deckIndex: number, volume: number): Promise<void> =>
     ipcRenderer.invoke('mixdeck:mixerSetDeckVolume', deckIndex, volume),
   mixerSetCrossfaderPosition: (position: number): Promise<void> =>

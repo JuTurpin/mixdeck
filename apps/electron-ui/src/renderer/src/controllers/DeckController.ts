@@ -46,6 +46,12 @@ export class DeckController {
     return window.mixdeck.deckSetPitch(this.deckIndex, percent)
   }
 
+  // Story 3.1 (ADR-006) — bascule entre pitch "vitesse liée" (défaut) et
+  // "indépendant" (SoundTouch). Pas encore d'appelant UI (backend only).
+  setPitchMode(mode: 'linked' | 'independent'): Promise<void> {
+    return window.mixdeck.deckSetPitchMode(this.deckIndex, mode)
+  }
+
   getState(): Promise<string> {
     return window.mixdeck.deckGetState(this.deckIndex)
   }

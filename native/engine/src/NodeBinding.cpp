@@ -20,6 +20,7 @@ public:
             InstanceMethod("deckGetLength", &NativeEngine::DeckGetLength),
             InstanceMethod("deckSetFilter", &NativeEngine::DeckSetFilter),
             InstanceMethod("deckSetPitch", &NativeEngine::DeckSetPitch),
+            InstanceMethod("deckSetPitchMode", &NativeEngine::DeckSetPitchMode),
             InstanceMethod("mixerSetDeckVolume", &NativeEngine::MixerSetDeckVolume),
             InstanceMethod("mixerSetCrossfaderPosition", &NativeEngine::MixerSetCrossfaderPosition),
             InstanceMethod("mixerSetCrossfaderCurve", &NativeEngine::MixerSetCrossfaderCurve),
@@ -91,6 +92,15 @@ private:
 
     Napi::Value DeckSetPitch(const Napi::CallbackInfo& info) {
         DeckFromArg(info, 0).setPitch(static_cast<float>(info[1].As<Napi::Number>().DoubleValue()));
+        return info.Env().Undefined();
+    }
+
+    Napi::Value DeckSetPitchMode(const Napi::CallbackInfo& info) {
+        const auto name = info[1].As<Napi::String>().Utf8Value();
+        auto mode = mixdeck::PitchMode::LinkedSpeed;
+        if (name == "independent")
+            mode = mixdeck::PitchMode::Independent;
+        DeckFromArg(info, 0).setPitchMode(mode);
         return info.Env().Undefined();
     }
 

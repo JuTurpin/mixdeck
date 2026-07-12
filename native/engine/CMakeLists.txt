@@ -7,15 +7,27 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(JUCE)
 
-# Shared engine code (Deck/Mixer/FilterDSP/Engine here; TimeStretch/PluginHost
-# will be added to this same target in later stories, not created as empty
-# stubs now). Engine.cpp (2.2) is the headless equivalent of MainComponent's
-# audio graph, used by the Node Bridge below.
+# SoundTouch (Story 3.1, ADR-006) — vendorisé en submodule comme JUCE, pinné
+# au tag 2.4.1. On ne veut que la lib SoundTouch elle-même : pas l'utilitaire
+# CLI soundstretch, pas le wrapper C SoundTouchDLL. INTEGER_SAMPLES=OFF est
+# déjà la valeur par défaut de SoundTouch (échantillons float, cohérent avec
+# les buffers JUCE) ; forcé ici pour ne pas dépendre d'un futur changement de
+# défaut en amont.
+set(SOUNDSTRETCH OFF CACHE BOOL "" FORCE)
+set(SOUNDTOUCH_DLL OFF CACHE BOOL "" FORCE)
+set(INTEGER_SAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(SoundTouch)
+
+# Shared engine code (Deck/Mixer/FilterDSP/Engine/TimeStretch here;
+# PluginHost sera ajouté à cette même cible en Epic 4). Engine.cpp (2.2) est
+# l'équivalent headless du graphe audio de MainComponent, utilisé par le Node
+# Bridge plus bas.
 add_library(engine-core STATIC
     src/Deck.cpp
     src/Mixer.cpp
     src/FilterDSP.cpp
     src/Engine.cpp
+    src/TimeStretch.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)
@@ -24,6 +36,7 @@ target_link_libraries(engine-core
     PUBLIC
         juce::juce_audio_utils
         juce::juce_dsp
+        SoundTouch
     PRIVATE
         juce::juce_recommended_config_flags
 )

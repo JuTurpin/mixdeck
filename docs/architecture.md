@@ -36,7 +36,7 @@ mixdeck/
 │       │   ├── FilterDSP.cpp/.h
 │       │   ├── Engine.cpp/.h     # Graphe audio headless (Story 2.2), utilisé par le Bridge
 │       │   ├── NodeBinding.cpp   # Point d'entrée N-API (node-addon-api) — Bridge, Story 2.2
-│       │   ├── TimeStretch.cpp/.h    # à venir, Epic 3
+│       │   ├── TimeStretch.cpp/.h    # SoundTouch, Story 3.1 (ADR-006)
 │       │   └── PluginHost.cpp/.h     # à venir, Epic 4
 │       ├── standalone-app/       # Harnais de test JUCE (GUI minimale, hors Electron) — Epic 1
 │       ├── package.json          # node-addon-api, cmake-js — build du Bridge (Story 2.2)
@@ -74,7 +74,7 @@ Flux de commande : `React → Controller → Bridge → JUCE`. Flux d'événemen
 Lecture via `AudioFormatManager` (WAV, MP3, FLAC, AIFF), waveform précalculée à l'import, jog wheel virtuel (scratch/nudge), cue points, boucles.
 
 ### 4.2 Pitch / tempo
-Slider ±8/16/50 %. Deux modes : vitesse liée (resampling simple) et time-stretch indépendant (Rubber Band ou SoundTouch). BPM détecté à l'import, sync automatique entre decks.
+Slider ±8/16/50 %. Deux modes : vitesse liée (resampling simple) et time-stretch indépendant (SoundTouch, ADR-006). BPM détecté à l'import, sync automatique entre decks.
 
 ### 4.3 Fader / crossfader
 Gain par deck (linéaire/log), crossfader avec courbes sélectionnables (linéaire, smooth, cut). Calcul de gain entièrement côté moteur natif.

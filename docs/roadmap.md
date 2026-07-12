@@ -43,7 +43,7 @@ Objectif : valider le DSP à l'oreille avant d'investir dans le bridge Electron.
 **Dépend de** : Epic 1, Story 0.2.
 
 ### Epic 3 — Pitch avancé & BPM
-3.1 Intégration d'une bibliothèque de time-stretch (Rubber Band ou SoundTouch — licence à confirmer, voir `decision.md`)
+3.1 Intégration d'une bibliothèque de time-stretch (SoundTouch, LGPL-2.1 — voir `decision.md` ADR-006)
 3.2 Détection BPM à l'import + beat-grid
 3.3 Synchronisation automatique entre decks
 **Dépend de** : Epic 2. Peut être menée en parallèle de l'Epic 4.

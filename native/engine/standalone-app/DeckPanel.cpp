@@ -61,6 +61,17 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
     pitchLabel.setJustificationType(juce::Justification::centred);
     pitchLabel.setFont(juce::FontOptions(11.0f));
 
+    // Story 3.1 (ADR-006) — bascule à l'oreille entre pitch "vitesse liée"
+    // (défaut) et "indépendant" (SoundTouch), sans passer par le pipeline
+    // Electron — même méthode de validation que les 4 stories DSP de l'Epic 1.
+    addAndMakeVisible(pitchModeButton);
+    pitchModeButton.setClickingTogglesState(true);
+    pitchModeButton.onClick = [this] {
+        const auto independent = pitchModeButton.getToggleState();
+        deck.setPitchMode(independent ? PitchMode::Independent : PitchMode::LinkedSpeed);
+        pitchModeButton.setButtonText(independent ? "Independant" : "Vitesse liee");
+    };
+
     trackLabel.setText("Aucune piste chargee", juce::dontSendNotification);
     trackLabel.setJustificationType(juce::Justification::centred);
     positionLabel.setText("00:00 / 00:00", juce::dontSendNotification);
@@ -117,6 +128,8 @@ void DeckPanel::resized() {
     area.removeFromTop(8);
     pitchLabel.setBounds(area.removeFromTop(14));
     pitchSlider.setBounds(area.removeFromTop(24));
+    area.removeFromTop(4);
+    pitchModeButton.setBounds(area.removeFromTop(22));
     area.removeFromTop(8);
 
     auto filterArea = area.removeFromRight(70);

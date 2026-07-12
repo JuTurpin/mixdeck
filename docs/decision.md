@@ -35,10 +35,11 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 **Décision** : isolation hors-process recommandée, en particulier sur Windows. Sur macOS, l'hébergement Audio Unit reste généralement dans le process principal du fait des contraintes AppKit.
 **Statut** : Accepté (à confirmer en implémentation, Epic 4.4).
 
-### ADR-006 — Bibliothèque de time-stretch : Rubber Band ou SoundTouch
-**Contexte** : le pitch indépendant de la vitesse nécessite un algorithme de time-stretch de qualité.
-**Décision** : évaluer Rubber Band Library et SoundTouch (LGPL) ; le choix final dépendra de la licence compatible avec le mode de distribution retenu.
-**Statut** : Ouvert — décision finale à prendre en Epic 3.
+### ADR-006 — Bibliothèque de time-stretch : SoundTouch
+**Contexte** : le pitch indépendant de la vitesse (Epic 3, Story 3.1) nécessite un algorithme de time-stretch de qualité, en plus du mode "vitesse liée" existant (resampling, Story 1.4). Deux candidates évaluées : Rubber Band Library (GPLv2+, licence commerciale requise seulement en cas de distribution propriétaire) et SoundTouch (LGPL-2.1). Usage strictement personnel non distribué (ADR-010) : aucune des deux licences n'est bloquante.
+**Décision** : SoundTouch (LGPL-2.1), choix de Julien.
+**Alternatives écartées** : Rubber Band Library — qualité généralement jugée supérieure sur des ratios de stretch importants, mais non retenue.
+**Statut** : Accepté.
 
 ### ADR-007 — Bibliothèque de sons : SQLite local (better-sqlite3)
 **Contexte** : besoin de stocker métadonnées, tags, crates, cue points sans dépendance serveur.

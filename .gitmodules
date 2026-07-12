@@ -1,3 +1,6 @@
 [submodule "native/engine/JUCE"]
 	path = native/engine/JUCE
 	url = https://github.com/juce-framework/JUCE.git
+[submodule "native/engine/SoundTouch"]
+	path = native/engine/SoundTouch
+	url = https://codeberg.org/soundtouch/soundtouch.git

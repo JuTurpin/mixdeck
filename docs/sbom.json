@@ -45,6 +45,35 @@
     },
     {
       "type": "library",
+      "name": "SoundTouch",
+      "version": "2.4.1",
+      "purl": "pkg:generic/soundtouch@2.4.1",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://codeberg.org/soundtouch/soundtouch"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "vendoring",
+          "value": "git submodule at native/engine/SoundTouch, pinned to commit 0047e0b1ecfceb041348579119bf79b73a322a3a (tag 2.4.1)"
+        },
+        {
+          "name": "epic",
+          "value": "Epic 3 — Story 3.1"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "node-addon-api",
       "version": "8.9.0",
       "purl": "pkg:npm/node-addon-api@8.9.0",

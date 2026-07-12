@@ -19,6 +19,14 @@ juce::String toString(DeckState state) {
     return {};
 }
 
+juce::String toString(PitchMode mode) {
+    switch (mode) {
+        case PitchMode::LinkedSpeed:  return "linked";
+        case PitchMode::Independent:  return "independent";
+    }
+    return {};
+}
+
 Deck::Deck(juce::AudioFormatManager& formatManagerToUse)
     : formatManager(formatManagerToUse) {
     readAheadThread.startThread(juce::Thread::Priority::normal);
@@ -55,6 +63,7 @@ void Deck::unloadTrack() {
     transportSource.setSource(nullptr);
     readerSource.reset();
     loadedFileName = {};
+    timeStretch.reset();
     state = DeckState::Empty;
 }
 
@@ -73,11 +82,13 @@ void Deck::pause() {
 void Deck::stop() {
     transportSource.stop();
     transportSource.setPosition(0.0);
+    timeStretch.reset(); // discontinuity: don't let buffered stretched audio bleed in
     state = DeckState::Stopped;
 }
 
 void Deck::seek(double seconds) {
     transportSource.setPosition(juce::jlimit(0.0, transportSource.getLengthInSeconds(), seconds));
+    timeStretch.reset(); // discontinuity: don't let buffered stretched audio bleed in
 }
 
 bool Deck::isPlaying() const {
@@ -100,8 +111,19 @@ void Deck::setFilterKnob(float value) {
 }
 
 void Deck::setPitch(float percent) {
+    // Both paths are kept in sync even when only one is active, so switching
+    // modes needs no extra resynchronization.
     const auto ratio = juce::jlimit(0.5, 1.5, 1.0 + (double) percent / 100.0);
     pitchResampler.setResamplingRatio(ratio);
+    timeStretch.setTempoPercent(percent);
+}
+
+void Deck::setPitchMode(PitchMode mode) {
+    if (mode == pitchMode)
+        return;
+
+    pitchMode = mode;
+    timeStretch.reset(); // flush stale FIFO before the new path (re)activates
 }
 
 double Deck::getPositionSeconds() const {
@@ -115,12 +137,14 @@ double Deck::getLengthSeconds() const {
 void Deck::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     pitchResampler.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    timeStretch.prepare(sampleRate, samplesPerBlockExpected);
     filter.prepare({ sampleRate, (juce::uint32) samplesPerBlockExpected, 2 });
 }
 
 void Deck::releaseResources() {
     transportSource.releaseResources();
     pitchResampler.releaseResources();
+    timeStretch.releaseResources();
 }
 
 void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
@@ -129,7 +153,10 @@ void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
         return;
     }
 
-    pitchResampler.getNextAudioBlock(bufferToFill);
+    if (pitchMode == PitchMode::Independent)
+        timeStretch.getNextAudioBlock(transportSource, bufferToFill);
+    else
+        pitchResampler.getNextAudioBlock(bufferToFill);
 
     auto block = juce::dsp::AudioBlock<float>(*bufferToFill.buffer)
                      .getSubBlock((size_t) bufferToFill.startSample, (size_t) bufferToFill.numSamples);

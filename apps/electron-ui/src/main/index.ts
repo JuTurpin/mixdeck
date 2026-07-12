@@ -67,7 +67,8 @@ function registerBridgeHandlers(nativeEngine: any): void {
     'deckGetPosition',
     'deckGetLength',
     'deckSetFilter',
-    'deckSetPitch'
+    'deckSetPitch',
+    'deckSetPitchMode'
   ] as const
 
   const mixerMethods = [

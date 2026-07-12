@@ -7,8 +7,10 @@ namespace mixdeck {
 
 /** Minimal transport + volume + filter + pitch controls for one Deck: load /
     play / pause / stop / unload, a DeckState label (2.1, ADR-016), a seekable
-    position slider, a volume fader (1.2), a filter knob (1.3) and a pitch
-    slider (1.4). Test harness only — not the final Electron/React UI (§6). */
+    position slider, a volume fader (1.2), a filter knob (1.3), a pitch slider
+    (1.4) and a pitch-mode toggle (3.1 — linked speed vs. independent
+    time-stretch, ADR-006). Test harness only — not the final Electron/React
+    UI (§6). */
 class DeckPanel : public juce::Component, private juce::Timer {
 public:
     DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& deckToControl);
@@ -49,6 +51,7 @@ private:
     juce::Label filterLabel;
     juce::Slider pitchSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
     juce::Label pitchLabel;
+    juce::TextButton pitchModeButton { "Vitesse liee" };
 
     std::unique_ptr<juce::FileChooser> fileChooser;
 
