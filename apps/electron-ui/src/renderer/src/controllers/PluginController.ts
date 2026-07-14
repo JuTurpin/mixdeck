@@ -15,4 +15,20 @@ export class PluginController {
   getAvailablePlugins(): Promise<AvailablePlugin[]> {
     return window.mixdeck.getAvailablePlugins()
   }
+
+  // Story 4.2 (ADR-004) — sélection manuelle, VST3 uniquement. Retourne le
+  // message d'erreur du Bridge ("" = succès), même convention que
+  // DeckController.loadTrack().
+  addPluginFromPath(path: string): Promise<string> {
+    return window.mixdeck.addPluginFromPath(path)
+  }
+
+  // Ouvre le sélecteur de fichier natif puis charge le plugin choisi.
+  // Retourne null si l'utilisateur annule, sinon le message d'erreur du
+  // Bridge — même convention que DeckController.pickAndLoadTrack().
+  async pickAndAddPlugin(): Promise<string | null> {
+    const path = await window.mixdeck.pickPluginFile()
+    if (!path) return null
+    return this.addPluginFromPath(path)
+  }
 }

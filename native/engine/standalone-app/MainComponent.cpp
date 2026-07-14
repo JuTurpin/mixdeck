@@ -78,7 +78,25 @@ MainComponent::MainComponent() {
     pluginResultsEditor.setText("Aucun scan effectue.", juce::dontSendNotification);
     addAndMakeVisible(pluginResultsEditor);
 
-    setSize(700, 560);
+    // Story 4.2 (ADR-004) — sélection manuelle, VST3 uniquement (les AU ne
+    // peuvent être identifiés que déjà enregistrés auprès de macOS, voir
+    // PluginHost::addPluginFromPath).
+    addAndMakeVisible(pluginBrowseButton);
+    pluginBrowseButton.onClick = [this] {
+        pluginFileChooser = std::make_unique<juce::FileChooser>(
+            "Choisir un plugin VST3", juce::File(), "*.vst3");
+
+        constexpr auto chooserFlags = juce::FileBrowserComponent::openMode
+                                     | juce::FileBrowserComponent::canSelectFiles;
+
+        pluginFileChooser->launchAsync(chooserFlags, [this](const juce::FileChooser& chooser) {
+            const auto file = chooser.getResult();
+            if (file != juce::File())
+                pluginFileChosen(file);
+        });
+    };
+
+    setSize(700, 590);
     setAudioChannels(0, 2); // no input, stereo output
 }
 
@@ -117,6 +135,14 @@ void MainComponent::updatePluginResultsDisplay() {
     pluginScanButton.setEnabled(true);
 }
 
+void MainComponent::pluginFileChosen(const juce::File& file) {
+    const auto error = pluginHost.addPluginFromPath(file.getFullPathName());
+    if (error.isNotEmpty())
+        pluginResultsEditor.setText(error, juce::dontSendNotification);
+    else
+        updatePluginResultsDisplay();
+}
+
 void MainComponent::crossfaderCurveChanged() {
     switch (crossfaderCurveBox.getSelectedId()) {
         case 1: mixer.setCrossfaderCurve(CrossfaderCurve::Linear); break;
@@ -148,6 +174,8 @@ void MainComponent::resized() {
 
     middleArea.removeFromTop(24);
     pluginScanButton.setBounds(middleArea.removeFromTop(28));
+    middleArea.removeFromTop(8);
+    pluginBrowseButton.setBounds(middleArea.removeFromTop(28));
     middleArea.removeFromTop(8);
     pluginResultsEditor.setBounds(middleArea);
 }

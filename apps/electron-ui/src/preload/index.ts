@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
 
 // Story 4.1 — sous-ensemble de juce::PluginDescription utile côté JS.
@@ -56,6 +56,16 @@ const mixdeck = {
   isPluginScanInProgress: (): Promise<boolean> => ipcRenderer.invoke('mixdeck:isPluginScanInProgress'),
   getAvailablePlugins: (): Promise<AvailablePlugin[]> =>
     ipcRenderer.invoke('mixdeck:getAvailablePlugins'),
+  // Story 4.2 (ADR-004) — sélection manuelle du chemin d'un plugin, VST3
+  // uniquement (voir PluginHost::addPluginFromPath). Retourne le message
+  // d'erreur du Bridge ("" = succès), même convention que deckLoadTrack.
+  pickPluginFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickPluginFile'),
+  addPluginFromPath: (path: string): Promise<string> =>
+    ipcRenderer.invoke('mixdeck:addPluginFromPath', path),
+  // Glisser-déposer : sous contextIsolation, un File du DOM n'expose plus son
+  // chemin réel directement — webUtils.getPathForFile() est le remplacement
+  // sûr exposé aux scripts preload.
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   // Story 2.5 — sélecteur de fichier natif (dialog.showOpenDialog côté main).
   pickFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickFile'),
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).

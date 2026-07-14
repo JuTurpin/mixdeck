@@ -85,7 +85,12 @@ function registerBridgeHandlers(nativeEngine: any): void {
 
   // Story 4.1 — découverte de plugins (scan des dossiers standards VST3/AU).
   // Pas de chargement dans une chaîne d'effets encore (Story 4.3).
-  const pluginScanMethods = ['startPluginScan', 'isPluginScanInProgress', 'getAvailablePlugins'] as const
+  const pluginScanMethods = [
+    'startPluginScan',
+    'isPluginScanInProgress',
+    'getAvailablePlugins',
+    'addPluginFromPath' // Story 4.2 (ADR-004) — sélection manuelle, VST3 uniquement
+  ] as const
 
   for (const method of [...deckMethods, ...mixerMethods, ...pluginSpikeMethods, ...pluginScanMethods]) {
     ipcMain.handle(`mixdeck:${method}`, (_event, ...args) => nativeEngine[method](...args))
@@ -106,6 +111,19 @@ function registerFilePickerHandler(): void {
   })
 }
 
+// Story 4.2 (ADR-004) — sélection manuelle du chemin d'un plugin. VST3
+// uniquement (voir PluginHost::addPluginFromPath) — un .vst3 est un bundle
+// macOS, sélectionnable comme un fichier unique malgré 'openFile'.
+function registerPluginFilePickerHandler(): void {
+  ipcMain.handle('mixdeck:pickPluginFile', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'VST3', extensions: ['vst3'] }]
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+}
+
 app.whenReady().then(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let nativeEngine: any
@@ -113,6 +131,7 @@ app.whenReady().then(() => {
     nativeEngine = createNativeEngine()
     registerBridgeHandlers(nativeEngine)
     registerFilePickerHandler()
+    registerPluginFilePickerHandler()
     console.log('[MixDeck] Bridge OK, deck A state =', nativeEngine.deckGetState(0))
   } catch (error) {
     console.error('[MixDeck] Bridge failed to load:', error)

@@ -27,6 +27,7 @@ public:
 private:
     void crossfaderCurveChanged();
     void updatePluginResultsDisplay(); // Story 4.1 — called back on the message thread once scanForPlugins() completes
+    void pluginFileChosen(const juce::File& file); // Story 4.2
 
     // Story 3.3 — pourcentage à appliquer pour que ownBpm rejoigne
     // otherEffectiveBpm (BPM effectif actuel de l'autre deck), clampé à la
@@ -60,7 +61,9 @@ private:
     // que dans DeckPanel.
     PluginHost pluginHost;
     juce::TextButton pluginScanButton { "Scanner les plugins" };
+    juce::TextButton pluginBrowseButton { "Parcourir un plugin..." }; // Story 4.2 — VST3 uniquement
     juce::TextEditor pluginResultsEditor;
+    std::unique_ptr<juce::FileChooser> pluginFileChooser;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

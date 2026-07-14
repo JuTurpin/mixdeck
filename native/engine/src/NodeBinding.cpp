@@ -32,6 +32,7 @@ public:
             InstanceMethod("startPluginScan", &NativeEngine::StartPluginScan),
             InstanceMethod("isPluginScanInProgress", &NativeEngine::IsPluginScanInProgress),
             InstanceMethod("getAvailablePlugins", &NativeEngine::GetAvailablePlugins),
+            InstanceMethod("addPluginFromPath", &NativeEngine::AddPluginFromPath),
         });
 
         exports.Set("NativeEngine", func);
@@ -191,6 +192,12 @@ private:
             result[i] = entry;
         }
         return result;
+    }
+
+    Napi::Value AddPluginFromPath(const Napi::CallbackInfo& info) {
+        const auto path = info[0].As<Napi::String>().Utf8Value();
+        const auto error = engine.addPluginFromPath(juce::String(path));
+        return Napi::String::New(info.Env(), error.toStdString());
     }
 };
 

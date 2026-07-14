@@ -23,6 +23,14 @@ public:
     // Thread-safe snapshot; empty until the first scan completes.
     std::vector<juce::PluginDescription> getAvailablePlugins() const;
 
+    // Story 4.2 (ADR-004) — manual path selection. Synchronous, like
+    // Deck::loadFile(): a single file to inspect, not a folder scan. Only
+    // VST3 genuinely supports loading from an arbitrary path (Audio Unit
+    // plugins can only be identified once already registered with macOS's
+    // Component Manager — confirmed in JUCE's own doc comments — so AU stays
+    // scan-only, Story 4.1). Returns an error message, "" on success.
+    juce::String addPluginFromPath(const juce::String& path);
+
 private:
     juce::AudioPluginFormatManager formatManager;
     mutable std::mutex mutex;

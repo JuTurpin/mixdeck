@@ -26,6 +26,9 @@ public:
     bool isPluginScanInProgress() const { return pluginScanInProgress; }
     std::vector<juce::PluginDescription> getAvailablePlugins() const { return pluginHost.getAvailablePlugins(); }
 
+    // Story 4.2 (ADR-004) — manual path selection, VST3 only (see PluginHost).
+    juce::String addPluginFromPath(const juce::String& path) { return pluginHost.addPluginFromPath(path); }
+
 private:
     juce::AudioDeviceManager deviceManager;
     juce::AudioFormatManager formatManager;
