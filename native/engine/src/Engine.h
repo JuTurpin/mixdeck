@@ -21,8 +21,12 @@ public:
 private:
     juce::AudioDeviceManager deviceManager;
     juce::AudioFormatManager formatManager;
-    Deck deckA { formatManager };
-    Deck deckB { formatManager };
+    // Story 3.2 — shared by both decks: at most 2 BPM analyses run at once,
+    // one per deck. Declared before deckA/deckB so it's constructed first
+    // (member init order follows declaration order, not the list below).
+    juce::ThreadPool analysisPool { 2 };
+    Deck deckA { formatManager, analysisPool };
+    Deck deckB { formatManager, analysisPool };
     juce::MixerAudioSource audioMixer;
     Mixer mixer { deckA, deckB };
     juce::AudioSourcePlayer audioSourcePlayer;

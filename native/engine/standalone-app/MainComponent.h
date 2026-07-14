@@ -27,8 +27,11 @@ private:
     void crossfaderCurveChanged();
 
     juce::AudioFormatManager formatManager;
-    Deck deckA { formatManager };
-    Deck deckB { formatManager };
+    // Story 3.2 — shared BPM-analysis pool; declared before deckA/deckB so
+    // it's constructed first (member init order follows declaration order).
+    juce::ThreadPool analysisPool { 2 };
+    Deck deckA { formatManager, analysisPool };
+    Deck deckB { formatManager, analysisPool };
     juce::MixerAudioSource audioMixer; // sums deckA/deckB to the output; gain itself lives on each Deck (see Mixer)
     Mixer mixer { deckA, deckB };
 

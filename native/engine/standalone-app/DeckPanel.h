@@ -8,8 +8,9 @@ namespace mixdeck {
 /** Minimal transport + volume + filter + pitch controls for one Deck: load /
     play / pause / stop / unload, a DeckState label (2.1, ADR-016), a seekable
     position slider, a volume fader (1.2), a filter knob (1.3), a pitch slider
-    (1.4) and a pitch-mode toggle (3.1 — linked speed vs. independent
-    time-stretch, ADR-006). Test harness only — not the final Electron/React
+    (1.4), a pitch-mode toggle (3.1 — linked speed vs. independent
+    time-stretch, ADR-006) and a BPM label (3.2, updated once background
+    analysis completes). Test harness only — not the final Electron/React
     UI (§6). */
 class DeckPanel : public juce::Component, private juce::Timer {
 public:
@@ -44,6 +45,7 @@ private:
     juce::TextButton unloadButton { "Unload" };
     juce::Label trackLabel;
     juce::Label stateLabel;
+    juce::Label bpmLabel; // Story 3.2 — "-- BPM" until analysis completes
     juce::Label positionLabel;
     juce::Slider positionSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
     juce::Slider volumeSlider { juce::Slider::LinearVertical, juce::Slider::NoTextBox };

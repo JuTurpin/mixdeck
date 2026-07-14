@@ -20,4 +20,7 @@ export interface MixdeckEvent {
   state: string
   position: number
   length: number
+  // Story 3.2 — 0 tant que l'analyse BPM en tâche de fond n'est pas terminée.
+  // Champ toujours présent, comme position/length, pas un type d'événement dédié.
+  bpm: number
 }

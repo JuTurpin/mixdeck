@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## État du projet
 
-**Epic 1 ("moteur audio standalone JUCE") et Epic 2 ("intégration Electron") sont terminés.** Epic 1 : les 4 stories (lecture 2 pistes, Mixer/crossfader, filtre résonant, pitch vitesse liée) validées à l'oreille. Avant l'Epic 2, une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). Epic 2 : chaîne complète React → Controller → IPC → Bridge → moteur JUCE opérationnelle, vraie UI (Deck/Mixer/Filtre, calquée sur l'export Claude Design), fenêtre sans cadre natif (`frame: false`, fermer quitte toute l'app — ADR-010), modèle événementiel (ADR-015) poussé par le process principal, et checklist de robustesse/performance (Story 2.7) passée sans souci notable. **Toutes les stories validées par Julien.** Epic 3 (pitch avancé & BPM) démarré : Story 3.1 (time-stretch indépendant via SoundTouch, ADR-006) codée et **validée à l'oreille**, backend uniquement (pas de toggle React pour l'instant). Voir `docs/progress.md` pour l'état story par story à jour. Prochaine étape : Story 3.2 (détection BPM + beat-grid). Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE et SoundTouch sont vendorisés en submodules (`native/engine/JUCE`, `native/engine/SoundTouch`).
+**Epic 1 ("moteur audio standalone JUCE") et Epic 2 ("intégration Electron") sont terminés.** Epic 1 : les 4 stories (lecture 2 pistes, Mixer/crossfader, filtre résonant, pitch vitesse liée) validées à l'oreille. Avant l'Epic 2, une revue d'architecture a affiné le découpage (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks — voir `docs/decision.md`). Epic 2 : chaîne complète React → Controller → IPC → Bridge → moteur JUCE opérationnelle, vraie UI (Deck/Mixer/Filtre, calquée sur l'export Claude Design), fenêtre sans cadre natif (`frame: false`, fermer quitte toute l'app — ADR-010), modèle événementiel (ADR-015) poussé par le process principal, et checklist de robustesse/performance (Story 2.7) passée sans souci notable. **Toutes les stories validées par Julien.** Epic 3 (pitch avancé & BPM) en cours : Story 3.1 (time-stretch indépendant via SoundTouch, ADR-006) et Story 3.2 (détection BPM à l'import + beat-grid, `BpmAnalyzer`, BPM effectif affiché dans l'en-tête du Deck) **validées**. Voir `docs/progress.md` pour l'état story par story à jour. Prochaine étape : Story 3.3 (synchronisation automatique entre decks). Dépôt git initialisé (branche `main`), poussé en privé sur `github.com/JuTurpin/mixdeck` ; JUCE et SoundTouch sont vendorisés en submodules (`native/engine/JUCE`, `native/engine/SoundTouch`).
 
 ## Commandes (moteur natif `native/engine/`)
 
@@ -143,7 +143,7 @@ Epic 1 (moteur standalone JUCE, hors Electron)
           └─► Epic 5 (bibliothèque SQLite)                  ─┘
 ```
 
-**Prochaine action (voir `progress.md`)** : Epic 3 (pitch avancé & BPM), Story 3.1 (time-stretch indépendant, SoundTouch/ADR-006) validée par Julien — passer à la Story 3.2 (détection BPM + beat-grid).
+**Prochaine action (voir `progress.md`)** : Epic 3 (pitch avancé & BPM), Story 3.2 (détection BPM + beat-grid) validée par Julien — passer à la Story 3.3 (synchronisation automatique entre decks).
 
 ## Contraintes non-fonctionnelles
 

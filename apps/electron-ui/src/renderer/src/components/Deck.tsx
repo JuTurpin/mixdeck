@@ -1,7 +1,8 @@
 // Composant Deck partagé A/B, paramétré par accent/label (architecture.md
-// §6). Pas de BPM/clé, waveform, hot cues, EQ ni chaîne d'effets : ces
-// éléments n'ont aucun moteur derrière aujourd'hui (voir docs/decision.md,
-// discussion Story 2.5) et arriveront avec leurs stories respectives.
+// §6). BPM détecté à l'import (Story 3.2). Pas de clé, waveform, hot cues,
+// EQ ni chaîne d'effets : ces éléments n'ont aucun moteur derrière
+// aujourd'hui (voir docs/decision.md, discussion Story 2.5) et arriveront
+// avec leurs stories respectives.
 import { useMemo, useRef, useState, type PointerEvent } from 'react'
 import { DeckController } from '../controllers/DeckController'
 import type { MixerController } from '../controllers/MixerController'
@@ -23,13 +24,17 @@ function formatSeconds(seconds: number): string {
 
 export default function Deck({ label, accent, deckIndex, mixer }: DeckProps) {
   const controller = useMemo(() => new DeckController(deckIndex), [deckIndex])
-  const { state, position, length } = useDeckState(controller)
+  const { state, position, length, bpm } = useDeckState(controller)
   const [error, setError] = useState('')
   const [filterValue, setFilterValue] = useState(0)
   const [pitchValue, setPitchValue] = useState(0)
   const dragStart = useRef<{ x: number; position: number } | null>(null)
 
   const hasTrack = state !== 'EMPTY'
+  // BPM effectif (architecture.md §6) : le BPM détecté recalculé selon le
+  // pitch courant, quel que soit le mode (vitesse liée ou indépendant, 3.1)
+  // — les deux interprètent le même pourcentage comme un changement de tempo.
+  const effectiveBpm = bpm > 0 ? bpm * (1 + pitchValue / 100) : null
 
   const handleLoadClick = async (): Promise<void> => {
     const result = await controller.pickAndLoadTrack()
@@ -66,10 +71,15 @@ export default function Deck({ label, accent, deckIndex, mixer }: DeckProps) {
         gap: 10
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
-        <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: '#8b8f98' }}>
-          {label}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
+          <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: '#8b8f98' }}>
+            {label}
+          </span>
+        </div>
+        <span style={{ fontSize: 11, fontFamily: 'ui-monospace, monospace', color: '#8b8f98' }}>
+          {effectiveBpm !== null ? `${effectiveBpm.toFixed(1)} BPM` : '-- BPM'}
         </span>
       </div>
 

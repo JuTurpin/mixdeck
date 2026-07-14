@@ -18,6 +18,7 @@ public:
             InstanceMethod("deckGetState", &NativeEngine::DeckGetState),
             InstanceMethod("deckGetPosition", &NativeEngine::DeckGetPosition),
             InstanceMethod("deckGetLength", &NativeEngine::DeckGetLength),
+            InstanceMethod("deckGetBpm", &NativeEngine::DeckGetBpm),
             InstanceMethod("deckSetFilter", &NativeEngine::DeckSetFilter),
             InstanceMethod("deckSetPitch", &NativeEngine::DeckSetPitch),
             InstanceMethod("deckSetPitchMode", &NativeEngine::DeckSetPitchMode),
@@ -83,6 +84,10 @@ private:
 
     Napi::Value DeckGetLength(const Napi::CallbackInfo& info) {
         return Napi::Number::New(info.Env(), DeckFromArg(info, 0).getLengthSeconds());
+    }
+
+    Napi::Value DeckGetBpm(const Napi::CallbackInfo& info) {
+        return Napi::Number::New(info.Env(), DeckFromArg(info, 0).getBpm());
     }
 
     Napi::Value DeckSetFilter(const Napi::CallbackInfo& info) {

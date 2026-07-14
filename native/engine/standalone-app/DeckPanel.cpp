@@ -21,12 +21,17 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
     addAndMakeVisible(unloadButton);
     addAndMakeVisible(trackLabel);
     addAndMakeVisible(stateLabel);
+    addAndMakeVisible(bpmLabel);
     addAndMakeVisible(positionLabel);
     addAndMakeVisible(positionSlider);
     addAndMakeVisible(volumeSlider);
 
     stateLabel.setJustificationType(juce::Justification::centred);
     stateLabel.setFont(juce::FontOptions(11.0f));
+
+    bpmLabel.setText("-- BPM", juce::dontSendNotification);
+    bpmLabel.setJustificationType(juce::Justification::centred);
+    bpmLabel.setFont(juce::FontOptions(11.0f));
 
     positionSlider.onValueChange = [this] { deck.seek(positionSlider.getValue()); };
 
@@ -112,6 +117,8 @@ void DeckPanel::resized() {
     trackLabel.setBounds(area.removeFromTop(24));
     area.removeFromTop(4);
     stateLabel.setBounds(area.removeFromTop(16));
+    area.removeFromTop(4);
+    bpmLabel.setBounds(area.removeFromTop(16));
     area.removeFromTop(8);
     positionLabel.setBounds(area.removeFromTop(18));
     area.removeFromTop(4);
@@ -173,6 +180,10 @@ void DeckPanel::updateTransportButtons() {
 void DeckPanel::timerCallback() {
     updateTransportButtons();
     stateLabel.setText(toString(deck.getState()), juce::dontSendNotification);
+
+    const auto bpm = deck.getBpm();
+    bpmLabel.setText(bpm > 0.0f ? juce::String(bpm, 1) + " BPM" : "-- BPM", juce::dontSendNotification);
+
     positionLabel.setText(formatSeconds(deck.getPositionSeconds()) + " / "
                                + formatSeconds(deck.getLengthSeconds()),
                            juce::dontSendNotification);

@@ -16,6 +16,7 @@ interface DeckSnapshot {
   state: string
   position: number
   length: number
+  bpm: number
 }
 
 function eventTypeForTransition(
@@ -51,7 +52,8 @@ export function startEngineEventPump(nativeEngine: any, webContents: WebContents
       const snapshot: DeckSnapshot = {
         state: nativeEngine.deckGetState(deckIndex),
         position: nativeEngine.deckGetPosition(deckIndex),
-        length: nativeEngine.deckGetLength(deckIndex)
+        length: nativeEngine.deckGetLength(deckIndex),
+        bpm: nativeEngine.deckGetBpm(deckIndex)
       }
 
       const transitionType = eventTypeForTransition(lastState[deckIndex], snapshot)

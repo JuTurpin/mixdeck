@@ -3,6 +3,8 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_utils/juce_audio_utils.h>
+#include <atomic>
+#include <mutex>
 #include "FilterDSP.h"
 #include "TimeStretch.h"
 
@@ -33,7 +35,9 @@ juce::String toString(PitchMode mode);
     future UI never has to reconstruct status from ad hoc flags. */
 class Deck : public juce::AudioSource {
 public:
-    explicit Deck(juce::AudioFormatManager& formatManagerToUse);
+    // analysisPoolToUse: shared background pool for BPM analysis (Story 3.2),
+    // owned by Engine/MainComponent — at most one job per Deck in flight.
+    Deck(juce::AudioFormatManager& formatManagerToUse, juce::ThreadPool& analysisPoolToUse);
     ~Deck() override;
 
     // Returns an error message on failure, or an empty string on success.
@@ -67,13 +71,24 @@ public:
     double getLengthSeconds() const;
     juce::String getLoadedFileName() const { return loadedFileName; }
 
+    // Story 3.2 — detected at load time on a background thread (see
+    // analysisPool). 0 = not yet analyzed (or detection failed).
+    float getBpm() const;
+
+    // Beat positions in seconds. C++-only for now: no Bridge/UI consumer yet
+    // (no waveform to draw it on).
+    std::vector<float> getBeatGrid() const;
+
     // juce::AudioSource
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
     void releaseResources() override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
 
 private:
+    void startBpmAnalysis(const juce::File& file);
+
     juce::AudioFormatManager& formatManager;
+    juce::ThreadPool& analysisPool;
     juce::AudioTransportSource transportSource;
     juce::ResamplingAudioSource pitchResampler { &transportSource, false, 2 };
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
@@ -83,6 +98,17 @@ private:
     TimeStretch timeStretch;
     PitchMode pitchMode = PitchMode::LinkedSpeed; // default = unchanged Epic 1 behaviour
     mutable DeckState state = DeckState::Empty;
+
+    // Story 3.2 — written by a background analysis job, read by getBpm()/
+    // getBeatGrid() (called from the Node poll loop, ~5Hz — not the audio
+    // thread, so a plain mutex is fine here, no lock-free trickery needed).
+    mutable std::mutex analysisMutex;
+    float bpm = 0.0f;
+    std::vector<float> beatGrid;
+    // Incremented on every loadFile()/unloadTrack(): a job only commits its
+    // result if this hasn't moved on since it started, so a stale analysis
+    // from a quickly-replaced track can't clobber the current one's state.
+    std::atomic<int> loadGeneration { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Deck)
 };

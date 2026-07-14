@@ -28,6 +28,7 @@ add_library(engine-core STATIC
     src/FilterDSP.cpp
     src/Engine.cpp
     src/TimeStretch.cpp
+    src/BpmAnalyzer.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)

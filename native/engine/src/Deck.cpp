@@ -1,4 +1,5 @@
 #include "Deck.h"
+#include "BpmAnalyzer.h"
 
 namespace mixdeck {
 
@@ -27,8 +28,8 @@ juce::String toString(PitchMode mode) {
     return {};
 }
 
-Deck::Deck(juce::AudioFormatManager& formatManagerToUse)
-    : formatManager(formatManagerToUse) {
+Deck::Deck(juce::AudioFormatManager& formatManagerToUse, juce::ThreadPool& analysisPoolToUse)
+    : formatManager(formatManagerToUse), analysisPool(analysisPoolToUse) {
     readAheadThread.startThread(juce::Thread::Priority::normal);
 }
 
@@ -51,6 +52,7 @@ juce::String Deck::loadFile(const juce::File& file) {
         readerSource = std::move(newSource);
         loadedFileName = file.getFileName();
         state = DeckState::Ready;
+        startBpmAnalysis(file);
         return {};
     }
 
@@ -64,7 +66,42 @@ void Deck::unloadTrack() {
     readerSource.reset();
     loadedFileName = {};
     timeStretch.reset();
+    ++loadGeneration; // invalidate any BPM analysis job still in flight
+    {
+        std::lock_guard<std::mutex> lock(analysisMutex);
+        bpm = 0.0f;
+        beatGrid.clear();
+    }
     state = DeckState::Empty;
+}
+
+void Deck::startBpmAnalysis(const juce::File& file) {
+    const auto generation = ++loadGeneration;
+    {
+        std::lock_guard<std::mutex> lock(analysisMutex);
+        bpm = 0.0f;
+        beatGrid.clear();
+    }
+
+    analysisPool.addJob([this, file, generation] {
+        auto result = analyzeBpm(file, formatManager);
+
+        std::lock_guard<std::mutex> lock(analysisMutex);
+        if (generation == loadGeneration.load()) {
+            bpm = result.bpm;
+            beatGrid = std::move(result.beatGridSeconds);
+        }
+    });
+}
+
+float Deck::getBpm() const {
+    std::lock_guard<std::mutex> lock(analysisMutex);
+    return bpm;
+}
+
+std::vector<float> Deck::getBeatGrid() const {
+    std::lock_guard<std::mutex> lock(analysisMutex);
+    return beatGrid;
 }
 
 void Deck::play() {

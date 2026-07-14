@@ -63,4 +63,9 @@ export class DeckController {
   getLength(): Promise<number> {
     return window.mixdeck.deckGetLength(this.deckIndex)
   }
+
+  // Story 3.2 — 0 tant que l'analyse BPM en tâche de fond n'est pas terminée.
+  getBpm(): Promise<number> {
+    return window.mixdeck.deckGetBpm(this.deckIndex)
+  }
 }

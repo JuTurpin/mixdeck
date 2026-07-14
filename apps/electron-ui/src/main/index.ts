@@ -66,6 +66,7 @@ function registerBridgeHandlers(nativeEngine: any): void {
     'deckGetState',
     'deckGetPosition',
     'deckGetLength',
+    'deckGetBpm',
     'deckSetFilter',
     'deckSetPitch',
     'deckSetPitchMode'

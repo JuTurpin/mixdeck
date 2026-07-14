@@ -29,7 +29,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 | 2 — Intégration Electron | 2.6 Communication Engine → UI | ✅ Fait | `engineEvents.ts` (pump process principal, 200ms, push via `webContents.send`), `onEvent` côté preload/renderer. `useDeckState` n'interroge plus le Bridge. Validé par Julien. |
 | 2 — Intégration Electron | 2.7 Validation fonctionnelle et performances | ✅ Fait | Checklist robustesse/cycle de vie/performance parcourue par Julien : RAS. Seul point connu : ergonomie du drag de la platine (déjà en roadmap, Addon). **Epic 2 terminé.** |
 | 3 — Pitch avancé | 3.1 Time-stretch (SoundTouch) | ✅ Fait | ADR-006 tranché. `TimeStretch`/`PitchMode` intégrés dans `Deck`, backend uniquement (pas de toggle React). Un bug de saccade initial (granularité par lots de SoundTouch mal absorbée) corrigé via un tampon de sécurité (~185ms). **Validé à l'oreille par Julien** via le harnais standalone (`DeckPanel`), y compris avec deux pistes en lecture simultanée et mouvements brusques sur les curseurs. |
-| 3 — Pitch avancé | 3.2 Détection BPM | ⬜ À faire | |
+| 3 — Pitch avancé | 3.2 Détection BPM | ✅ Fait | `BpmAnalyzer` (SoundTouch `BPMDetect`, aucune nouvelle dépendance) analysé en tâche de fond (`juce::ThreadPool` partagé, 1er job async du projet) au chargement d'un morceau. BPM effectif (ajusté au pitch) affiché dans l'en-tête du Deck (React) + label dans le harnais standalone. Repliement par octave (90-180 BPM) ajouté après une détection à moitié tempo constatée par Julien sur un morceau. **Validé par Julien** sur deux pistes (une correcte d'emblée, l'autre corrigée par le repliement). Beat-grid calculé et stocké côté C++ (`Deck::getBeatGrid()`) mais pas encore exposé au Bridge — aucun consommateur (pas de waveform). |
 | 3 — Pitch avancé | 3.3 Sync automatique | ⬜ À faire | |
 | 4 — Plugins VST3/AU | 4.0 GUI native vs knobs génériques | ⬜ Ouvert | Décision à prendre — ADR-011 |
 | 4 — Plugins VST3/AU | 4.1 Scan automatique | ⬜ À faire | |
@@ -45,7 +45,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 
 ## Prochaine action
 
-Story 3.1 (time-stretch indépendant, SoundTouch) validée. Poursuivre l'Epic 3 avec la Story 3.2 (détection BPM + beat-grid), avec son propre plan dédié.
+Story 3.2 (détection BPM + beat-grid) validée. Poursuivre l'Epic 3 avec la Story 3.3 (synchronisation automatique entre decks), avec son propre plan dédié.
 
 ## Journal des mises à jour
 

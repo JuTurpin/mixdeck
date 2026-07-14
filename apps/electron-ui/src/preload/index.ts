@@ -20,6 +20,9 @@ const mixdeck = {
     ipcRenderer.invoke('mixdeck:deckGetPosition', deckIndex),
   deckGetLength: (deckIndex: number): Promise<number> =>
     ipcRenderer.invoke('mixdeck:deckGetLength', deckIndex),
+  // Story 3.2 — 0 tant que l'analyse BPM en tâche de fond n'est pas terminée.
+  deckGetBpm: (deckIndex: number): Promise<number> =>
+    ipcRenderer.invoke('mixdeck:deckGetBpm', deckIndex),
   deckSetFilter: (deckIndex: number, value: number): Promise<void> =>
     ipcRenderer.invoke('mixdeck:deckSetFilter', deckIndex, value),
   deckSetPitch: (deckIndex: number, percent: number): Promise<void> =>
