@@ -1,19 +1,29 @@
 // Composant Deck partagé A/B, paramétré par accent/label (architecture.md
-// §6). BPM détecté à l'import (Story 3.2). Pas de clé, waveform, hot cues,
-// EQ ni chaîne d'effets : ces éléments n'ont aucun moteur derrière
-// aujourd'hui (voir docs/decision.md, discussion Story 2.5) et arriveront
-// avec leurs stories respectives.
-import { useMemo, useRef, useState, type PointerEvent } from 'react'
+// §6). BPM détecté à l'import (Story 3.2), sync automatique entre decks
+// (Story 3.3). Pas de clé, waveform, hot cues, EQ ni chaîne d'effets : ces
+// éléments n'ont aucun moteur derrière aujourd'hui (voir docs/decision.md,
+// discussion Story 2.5) et arriveront avec leurs stories respectives.
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { DeckController } from '../controllers/DeckController'
 import type { MixerController } from '../controllers/MixerController'
 import { useDeckState } from '../state'
 import FilterKnob from './FilterKnob'
+
+// Story 3.3 — bpm/pitch remontés au parent commun (App.tsx) : aucune des
+// deux valeurs n'est reconstruite ailleurs, c'est ce que ce composant sait
+// déjà (bpm via useDeckState, pitch via son propre slider).
+export interface DeckSyncInfo {
+  bpm: number
+  pitch: number
+}
 
 interface DeckProps {
   label: string
   accent: string
   deckIndex: number
   mixer: MixerController
+  otherDeck: DeckSyncInfo
+  onSyncInfoChange: (info: DeckSyncInfo) => void
 }
 
 function formatSeconds(seconds: number): string {
@@ -22,12 +32,20 @@ function formatSeconds(seconds: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
-export default function Deck({ label, accent, deckIndex, mixer }: DeckProps) {
+export default function Deck({
+  label,
+  accent,
+  deckIndex,
+  mixer,
+  otherDeck,
+  onSyncInfoChange
+}: DeckProps) {
   const controller = useMemo(() => new DeckController(deckIndex), [deckIndex])
   const { state, position, length, bpm } = useDeckState(controller)
   const [error, setError] = useState('')
   const [filterValue, setFilterValue] = useState(0)
   const [pitchValue, setPitchValue] = useState(0)
+  const [syncLocked, setSyncLocked] = useState(false)
   const dragStart = useRef<{ x: number; position: number } | null>(null)
 
   const hasTrack = state !== 'EMPTY'
@@ -35,6 +53,24 @@ export default function Deck({ label, accent, deckIndex, mixer }: DeckProps) {
   // pitch courant, quel que soit le mode (vitesse liée ou indépendant, 3.1)
   // — les deux interprètent le même pourcentage comme un changement de tempo.
   const effectiveBpm = bpm > 0 ? bpm * (1 + pitchValue / 100) : null
+
+  // Story 3.3 — remonte ce que ce deck sait déjà (bpm/pitch) au parent
+  // commun, pour que le bouton Sync de l'autre deck puisse s'y référer.
+  useEffect(() => {
+    onSyncInfoChange({ bpm, pitch: pitchValue })
+  }, [bpm, pitchValue, onSyncInfoChange])
+
+  // Story 3.3 (révisé après test) — verrou continu : tant que syncLocked est
+  // actif, chaque changement de bpm/pitch de l'AUTRE deck recalcule et
+  // réapplique le pitch de celui-ci. Reprendre la main sur le slider de ce
+  // deck désengage le verrou (sinon le slider "lutterait" contre l'utilisateur).
+  useEffect(() => {
+    if (!syncLocked || bpm <= 0 || otherDeck.bpm <= 0) return
+    const otherEffectiveBpm = otherDeck.bpm * (1 + otherDeck.pitch / 100)
+    const percent = controller.computeSyncPitch(bpm, otherEffectiveBpm)
+    setPitchValue(percent)
+    controller.setPitch(percent)
+  }, [syncLocked, bpm, otherDeck.bpm, otherDeck.pitch, controller])
 
   const handleLoadClick = async (): Promise<void> => {
     const result = await controller.pickAndLoadTrack()
@@ -167,12 +203,24 @@ export default function Deck({ label, accent, deckIndex, mixer }: DeckProps) {
           value={pitchValue}
           onChange={(e) => {
             const v = Number(e.target.value)
+            setSyncLocked(false) // reprise en main manuelle : désengage le verrou
             setPitchValue(v)
             controller.setPitch(v)
           }}
           style={{ width: '100%' }}
         />
       </label>
+      <button
+        onClick={() => setSyncLocked((v) => !v)}
+        disabled={!hasTrack || bpm <= 0 || otherDeck.bpm <= 0}
+        style={{
+          fontSize: 11,
+          background: syncLocked ? accent : undefined,
+          color: syncLocked ? '#0d0e11' : undefined
+        }}
+      >
+        Sync
+      </button>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>

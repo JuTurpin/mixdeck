@@ -68,4 +68,12 @@ export class DeckController {
   getBpm(): Promise<number> {
     return window.mixdeck.deckGetBpm(this.deckIndex)
   }
+
+  // Story 3.3 — pourcentage à appliquer (via setPitch) pour que ownBpm (BPM
+  // brut détecté) rejoigne otherEffectiveBpm (BPM effectif actuel de l'autre
+  // deck), clampé à la plage du slider de pitch existant (-50..+50).
+  computeSyncPitch(ownBpm: number, otherEffectiveBpm: number): number {
+    const raw = (otherEffectiveBpm / ownBpm - 1) * 100
+    return Math.max(-50, Math.min(50, raw))
+  }
 }

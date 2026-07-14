@@ -9,9 +9,10 @@ namespace mixdeck {
     play / pause / stop / unload, a DeckState label (2.1, ADR-016), a seekable
     position slider, a volume fader (1.2), a filter knob (1.3), a pitch slider
     (1.4), a pitch-mode toggle (3.1 — linked speed vs. independent
-    time-stretch, ADR-006) and a BPM label (3.2, updated once background
-    analysis completes). Test harness only — not the final Electron/React
-    UI (§6). */
+    time-stretch, ADR-006), a BPM label (3.2, updated once background
+    analysis completes) and a Sync button (3.3 — one-shot tempo match against
+    the other deck, computed by MainComponent). Test harness only — not the
+    final Electron/React UI (§6). */
 class DeckPanel : public juce::Component, private juce::Timer {
 public:
     DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& deckToControl);
@@ -28,6 +29,14 @@ public:
 
     // Called with -50..+50 (%) whenever the pitch slider moves (wired to Deck::setPitch by MainComponent).
     std::function<void(float)> onPitchChanged;
+
+    // Story 3.3 — called when the Sync button is clicked (MainComponent computes
+    // the target percent and calls setPitchDisplay() back to reflect it here).
+    std::function<void()> onSyncRequested;
+
+    // Updates the pitch slider's displayed value without re-triggering onPitchChanged
+    // (Story 3.3 — reflects a sync applied programmatically, not by dragging).
+    void setPitchDisplay(float percent);
 
 private:
     void loadFileClicked();
@@ -54,6 +63,7 @@ private:
     juce::Slider pitchSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
     juce::Label pitchLabel;
     juce::TextButton pitchModeButton { "Vitesse liee" };
+    juce::TextButton syncButton { "Sync" };
 
     std::unique_ptr<juce::FileChooser> fileChooser;
 

@@ -12,8 +12,37 @@ MainComponent::MainComponent() {
     deckPanelB.onVolumeChanged = [this](float volume) { mixer.setDeckVolume(1, volume); };
     deckPanelA.onFilterChanged = [this](float value) { deckA.setFilterKnob(value); };
     deckPanelB.onFilterChanged = [this](float value) { deckB.setFilterKnob(value); };
-    deckPanelA.onPitchChanged = [this](float percent) { deckA.setPitch(percent); };
-    deckPanelB.onPitchChanged = [this](float percent) { deckB.setPitch(percent); };
+    deckPanelA.onPitchChanged = [this](float percent) {
+        pitchA = percent;
+        deckA.setPitch(percent);
+    };
+    deckPanelB.onPitchChanged = [this](float percent) {
+        pitchB = percent;
+        deckB.setPitch(percent);
+    };
+    // Story 3.3 — ponctuel : calcule le pourcentage cible à partir du BPM
+    // effectif actuel de l'autre deck, l'applique, et reflète le résultat
+    // sur le slider (setPitchDisplay ne redéclenche pas onPitchChanged).
+    deckPanelA.onSyncRequested = [this] {
+        const auto ownBpm = deckA.getBpm();
+        const auto otherBpm = deckB.getBpm();
+        if (ownBpm <= 0.0f || otherBpm <= 0.0f)
+            return;
+        const auto otherEffectiveBpm = otherBpm * (1.0f + pitchB / 100.0f);
+        pitchA = computeSyncPitch(ownBpm, otherEffectiveBpm);
+        deckA.setPitch(pitchA);
+        deckPanelA.setPitchDisplay(pitchA);
+    };
+    deckPanelB.onSyncRequested = [this] {
+        const auto ownBpm = deckB.getBpm();
+        const auto otherBpm = deckA.getBpm();
+        if (ownBpm <= 0.0f || otherBpm <= 0.0f)
+            return;
+        const auto otherEffectiveBpm = otherBpm * (1.0f + pitchA / 100.0f);
+        pitchB = computeSyncPitch(ownBpm, otherEffectiveBpm);
+        deckB.setPitch(pitchB);
+        deckPanelB.setPitchDisplay(pitchB);
+    };
     addAndMakeVisible(deckPanelA);
     addAndMakeVisible(deckPanelB);
 
@@ -50,6 +79,11 @@ void MainComponent::releaseResources() {
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
     audioMixer.getNextAudioBlock(bufferToFill);
+}
+
+float MainComponent::computeSyncPitch(float ownBpm, float otherEffectiveBpm) {
+    const auto raw = (otherEffectiveBpm / ownBpm - 1.0f) * 100.0f;
+    return juce::jlimit(-50.0f, 50.0f, raw);
 }
 
 void MainComponent::crossfaderCurveChanged() {

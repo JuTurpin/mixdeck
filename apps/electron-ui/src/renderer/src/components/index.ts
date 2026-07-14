@@ -1,5 +1,5 @@
 export { default as TitleBar } from './TitleBar'
 export { default as FilterKnob } from './FilterKnob'
-export { default as Deck } from './Deck'
+export { default as Deck, type DeckSyncInfo } from './Deck'
 export { default as Crossfader } from './Crossfader'
 export { default as ConsoleMaster } from './ConsoleMaster'

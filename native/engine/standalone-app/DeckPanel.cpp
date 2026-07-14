@@ -77,6 +77,14 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
         pitchModeButton.setButtonText(independent ? "Independant" : "Vitesse liee");
     };
 
+    // Story 3.3 — ponctuel : MainComponent calcule le pourcentage cible et
+    // rappelle setPitchDisplay() pour refléter le résultat ici.
+    addAndMakeVisible(syncButton);
+    syncButton.onClick = [this] {
+        if (onSyncRequested)
+            onSyncRequested();
+    };
+
     trackLabel.setText("Aucune piste chargee", juce::dontSendNotification);
     trackLabel.setJustificationType(juce::Justification::centred);
     positionLabel.setText("00:00 / 00:00", juce::dontSendNotification);
@@ -137,6 +145,8 @@ void DeckPanel::resized() {
     pitchSlider.setBounds(area.removeFromTop(24));
     area.removeFromTop(4);
     pitchModeButton.setBounds(area.removeFromTop(22));
+    area.removeFromTop(4);
+    syncButton.setBounds(area.removeFromTop(22));
     area.removeFromTop(8);
 
     auto filterArea = area.removeFromRight(70);
@@ -175,6 +185,11 @@ void DeckPanel::updateTransportButtons() {
     pauseButton.setEnabled(hasTrack);
     stopButton.setEnabled(hasTrack);
     unloadButton.setEnabled(hasTrack);
+    syncButton.setEnabled(hasTrack);
+}
+
+void DeckPanel::setPitchDisplay(float percent) {
+    pitchSlider.setValue(percent, juce::dontSendNotification);
 }
 
 void DeckPanel::timerCallback() {

@@ -26,6 +26,12 @@ public:
 private:
     void crossfaderCurveChanged();
 
+    // Story 3.3 — pourcentage à appliquer pour que ownBpm rejoigne
+    // otherEffectiveBpm (BPM effectif actuel de l'autre deck), clampé à la
+    // plage du slider de pitch existant. Même formule que côté TS
+    // (DeckController::computeSyncPitch).
+    static float computeSyncPitch(float ownBpm, float otherEffectiveBpm);
+
     juce::AudioFormatManager formatManager;
     // Story 3.2 — shared BPM-analysis pool; declared before deckA/deckB so
     // it's constructed first (member init order follows declaration order).
@@ -37,6 +43,12 @@ private:
 
     DeckPanel deckPanelA { "DECK A", juce::Colour(0xff4fd1c5), deckA };
     DeckPanel deckPanelB { "DECK B", juce::Colour(0xfff0955a), deckB };
+
+    // Story 3.3 — mémorise le dernier pitch appliqué à chaque deck (setPitch
+    // est write-only côté Deck ; l'UI est la seule à connaître sa propre
+    // valeur courante), mis à jour dans onPitchChanged et par le Sync lui-même.
+    float pitchA = 0.0f;
+    float pitchB = 0.0f;
 
     juce::Slider crossfaderSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
     juce::ComboBox crossfaderCurveBox;

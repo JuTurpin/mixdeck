@@ -9,7 +9,10 @@
 Dépôt git initialisé (branche `main`), poussé en privé sur GitHub (`JuTurpin/mixdeck`). JUCE 8.0.14 vendorisé en submodule (`native/engine/JUCE`, commit `2cdfca8f`). Les 4 stories de l'Epic 1 (lecture 2 pistes, mixer/crossfader, filtre résonant, pitch vitesse liée) sont codées, compilent et **validées à l'oreille par Julien** (ADR-008).
 
 **Epic 2 ✅ terminé — jalon "mixer deux morceaux depuis l'interface graphique" atteint**
-Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Les 7 stories sont codées, compilent et **validées par Julien**, y compris la checklist de robustesse/performance de la Story 2.7 (RAS, seul point connu : ergonomie du drag de la platine, déjà noté dans la roadmap section Addon). Prochaine étape : Epic 3 (pitch avancé & BPM).
+Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engine API, couche Controller, modèle événementiel, machine d'état des Decks) — Epic 2 redécoupé en 7 stories en conséquence (voir `roadmap.md`). Les 7 stories sont codées, compilent et **validées par Julien**, y compris la checklist de robustesse/performance de la Story 2.7 (RAS, seul point connu : ergonomie du drag de la platine, déjà noté dans la roadmap section Addon).
+
+**Epic 3 ✅ terminé — pitch avancé & BPM**
+Time-stretch indépendant (SoundTouch, ADR-006), détection BPM à l'import (`BpmAnalyzer`, 1er job async du projet) et synchronisation automatique entre decks (verrou continu, revu en cours de route sur demande de Julien). Les 3 stories sont codées, compilent et **validées par Julien**. Écart connu et assumé : le verrou continu de la Story 3.3 n'existe que côté Electron, le harnais standalone garde un Sync ponctuel.
 
 ## Suivi par epic / story
 
@@ -30,7 +33,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 | 2 — Intégration Electron | 2.7 Validation fonctionnelle et performances | ✅ Fait | Checklist robustesse/cycle de vie/performance parcourue par Julien : RAS. Seul point connu : ergonomie du drag de la platine (déjà en roadmap, Addon). **Epic 2 terminé.** |
 | 3 — Pitch avancé | 3.1 Time-stretch (SoundTouch) | ✅ Fait | ADR-006 tranché. `TimeStretch`/`PitchMode` intégrés dans `Deck`, backend uniquement (pas de toggle React). Un bug de saccade initial (granularité par lots de SoundTouch mal absorbée) corrigé via un tampon de sécurité (~185ms). **Validé à l'oreille par Julien** via le harnais standalone (`DeckPanel`), y compris avec deux pistes en lecture simultanée et mouvements brusques sur les curseurs. |
 | 3 — Pitch avancé | 3.2 Détection BPM | ✅ Fait | `BpmAnalyzer` (SoundTouch `BPMDetect`, aucune nouvelle dépendance) analysé en tâche de fond (`juce::ThreadPool` partagé, 1er job async du projet) au chargement d'un morceau. BPM effectif (ajusté au pitch) affiché dans l'en-tête du Deck (React) + label dans le harnais standalone. Repliement par octave (90-180 BPM) ajouté après une détection à moitié tempo constatée par Julien sur un morceau. **Validé par Julien** sur deux pistes (une correcte d'emblée, l'autre corrigée par le repliement). Beat-grid calculé et stocké côté C++ (`Deck::getBeatGrid()`) mais pas encore exposé au Bridge — aucun consommateur (pas de waveform). |
-| 3 — Pitch avancé | 3.3 Sync automatique | ⬜ À faire | |
+| 3 — Pitch avancé | 3.3 Sync automatique | ✅ Fait | Bouton Sync par deck (`DeckController.computeSyncPitch`), réutilise `setPitch`/`getBpm` (3.1/3.2) — aucun changement natif. Revu en cours de validation : verrou **continu** (pas ponctuel) sur demande de Julien — tant que le verrou est actif, tout changement de pitch/BPM de l'autre deck réapplique le pitch de celui-ci ; reprendre la main sur le slider désengage le verrou. État de synchro (bpm/pitch par deck) remonté dans `App.tsx`, premier état partagé entre les deux decks. Harnais standalone : Sync reste **ponctuel** (pas de verrou), écart assumé et communiqué à Julien. **Validé par Julien** sur Electron. **Epic 3 terminé.** |
 | 4 — Plugins VST3/AU | 4.0 GUI native vs knobs génériques | ⬜ Ouvert | Décision à prendre — ADR-011 |
 | 4 — Plugins VST3/AU | 4.1 Scan automatique | ⬜ À faire | |
 | 4 — Plugins VST3/AU | 4.2 Sélection manuelle du chemin | ⬜ À faire | |
@@ -45,7 +48,7 @@ Avant de démarrer l'Epic 2, révision d'architecture (ADR-013 à ADR-016 : Engi
 
 ## Prochaine action
 
-Story 3.2 (détection BPM + beat-grid) validée. Poursuivre l'Epic 3 avec la Story 3.3 (synchronisation automatique entre decks), avec son propre plan dédié.
+Epic 3 terminé (Story 3.3 validée). Prochaine étape : Epic 4 (plugins VST3/AU) — commencer par trancher ADR-011 (GUI native vs knobs génériques, story 4.0) avant la story 4.3.
 
 ## Journal des mises à jour
 
