@@ -2,6 +2,8 @@
 
 #include "Deck.h"
 #include "Mixer.h"
+#include "PluginHost.h"
+#include <atomic>
 
 namespace mixdeck {
 
@@ -18,6 +20,12 @@ public:
     Deck& getDeck(int index); // 0 = A, 1 = B
     Mixer& getMixer() { return mixer; }
 
+    // Story 4.1 — discovery only, no loading into a chain yet (Story 4.3).
+    // Runs on the shared analysisPool, same as BPM analysis (Story 3.2).
+    void startPluginScan();
+    bool isPluginScanInProgress() const { return pluginScanInProgress; }
+    std::vector<juce::PluginDescription> getAvailablePlugins() const { return pluginHost.getAvailablePlugins(); }
+
 private:
     juce::AudioDeviceManager deviceManager;
     juce::AudioFormatManager formatManager;
@@ -30,6 +38,9 @@ private:
     juce::MixerAudioSource audioMixer;
     Mixer mixer { deckA, deckB };
     juce::AudioSourcePlayer audioSourcePlayer;
+
+    PluginHost pluginHost;
+    std::atomic<bool> pluginScanInProgress { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Engine)
 };

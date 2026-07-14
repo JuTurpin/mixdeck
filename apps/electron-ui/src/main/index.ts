@@ -83,7 +83,11 @@ function registerBridgeHandlers(nativeEngine: any): void {
   // rattachement par deck ici : c'est de l'infrastructure, pas du moteur audio.
   const pluginSpikeMethods = ['showPluginWindowSpike', 'hidePluginWindowSpike'] as const
 
-  for (const method of [...deckMethods, ...mixerMethods, ...pluginSpikeMethods]) {
+  // Story 4.1 — découverte de plugins (scan des dossiers standards VST3/AU).
+  // Pas de chargement dans une chaîne d'effets encore (Story 4.3).
+  const pluginScanMethods = ['startPluginScan', 'isPluginScanInProgress', 'getAvailablePlugins'] as const
+
+  for (const method of [...deckMethods, ...mixerMethods, ...pluginSpikeMethods, ...pluginScanMethods]) {
     ipcMain.handle(`mixdeck:${method}`, (_event, ...args) => nativeEngine[method](...args))
   }
 }

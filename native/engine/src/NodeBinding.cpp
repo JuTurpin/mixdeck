@@ -29,6 +29,9 @@ public:
             InstanceMethod("setHostWindowHandle", &NativeEngine::SetHostWindowHandle),
             InstanceMethod("showPluginWindowSpike", &NativeEngine::ShowPluginWindowSpike),
             InstanceMethod("hidePluginWindowSpike", &NativeEngine::HidePluginWindowSpike),
+            InstanceMethod("startPluginScan", &NativeEngine::StartPluginScan),
+            InstanceMethod("isPluginScanInProgress", &NativeEngine::IsPluginScanInProgress),
+            InstanceMethod("getAvailablePlugins", &NativeEngine::GetAvailablePlugins),
         });
 
         exports.Set("NativeEngine", func);
@@ -165,6 +168,29 @@ private:
     Napi::Value HidePluginWindowSpike(const Napi::CallbackInfo& info) {
         pluginWindowSpike.hide();
         return info.Env().Undefined();
+    }
+
+    Napi::Value StartPluginScan(const Napi::CallbackInfo& info) {
+        engine.startPluginScan();
+        return info.Env().Undefined();
+    }
+
+    Napi::Value IsPluginScanInProgress(const Napi::CallbackInfo& info) {
+        return Napi::Boolean::New(info.Env(), engine.isPluginScanInProgress());
+    }
+
+    Napi::Value GetAvailablePlugins(const Napi::CallbackInfo& info) {
+        const auto plugins = engine.getAvailablePlugins();
+        auto result = Napi::Array::New(info.Env(), plugins.size());
+        for (size_t i = 0; i < plugins.size(); ++i) {
+            auto entry = Napi::Object::New(info.Env());
+            entry.Set("name", plugins[i].name.toStdString());
+            entry.Set("manufacturerName", plugins[i].manufacturerName.toStdString());
+            entry.Set("pluginFormatName", plugins[i].pluginFormatName.toStdString());
+            entry.Set("fileOrIdentifier", plugins[i].fileOrIdentifier.toStdString());
+            result[i] = entry;
+        }
+        return result;
     }
 };
 

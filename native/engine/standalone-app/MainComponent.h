@@ -3,6 +3,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "../src/Deck.h"
 #include "../src/Mixer.h"
+#include "../src/PluginHost.h"
 #include "DeckPanel.h"
 
 namespace mixdeck {
@@ -25,6 +26,7 @@ public:
 
 private:
     void crossfaderCurveChanged();
+    void updatePluginResultsDisplay(); // Story 4.1 — called back on the message thread once scanForPlugins() completes
 
     // Story 3.3 — pourcentage à appliquer pour que ownBpm rejoigne
     // otherEffectiveBpm (BPM effectif actuel de l'autre deck), clampé à la
@@ -52,6 +54,13 @@ private:
 
     juce::Slider crossfaderSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
     juce::ComboBox crossfaderCurveBox;
+
+    // Story 4.1 — découverte de plugins (pas de chargement dans une chaîne
+    // avant la 4.3) ; pas spécifique à un deck, câblé directement ici plutôt
+    // que dans DeckPanel.
+    PluginHost pluginHost;
+    juce::TextButton pluginScanButton { "Scanner les plugins" };
+    juce::TextEditor pluginResultsEditor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

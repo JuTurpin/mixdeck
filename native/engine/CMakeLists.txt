@@ -18,10 +18,9 @@ set(SOUNDTOUCH_DLL OFF CACHE BOOL "" FORCE)
 set(INTEGER_SAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(SoundTouch)
 
-# Shared engine code (Deck/Mixer/FilterDSP/Engine/TimeStretch here;
-# PluginHost sera ajouté à cette même cible en Epic 4). Engine.cpp (2.2) est
-# l'équivalent headless du graphe audio de MainComponent, utilisé par le Node
-# Bridge plus bas.
+# Shared engine code (Deck/Mixer/FilterDSP/Engine/TimeStretch/PluginHost).
+# Engine.cpp (2.2) est l'équivalent headless du graphe audio de
+# MainComponent, utilisé par le Node Bridge plus bas.
 add_library(engine-core STATIC
     src/Deck.cpp
     src/Mixer.cpp
@@ -30,6 +29,7 @@ add_library(engine-core STATIC
     src/TimeStretch.cpp
     src/BpmAnalyzer.cpp
     src/PluginWindowSpike.cpp
+    src/PluginHost.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)
@@ -48,6 +48,12 @@ target_compile_definitions(engine-core
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_STRICT_REFCOUNTEDPOINTER=1
+        # Story 4.1 (ADR-003) — active le hosting VST3/AU dans
+        # juce_audio_processors (module déjà lié transitivement via
+        # juce_audio_utils) ; sans ces flags, KnownPluginList/PluginDirectoryScanner
+        # ne trouveraient silencieusement aucun plugin.
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_PLUGINHOST_AU=1
 )
 
 # Story 1.1 test harness: standalone JUCE GUI app, no Electron/N-API involved.

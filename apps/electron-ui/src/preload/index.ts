@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
 
+// Story 4.1 — sous-ensemble de juce::PluginDescription utile côté JS.
+export interface AvailablePlugin {
+  name: string
+  manufacturerName: string
+  pluginFormatName: string
+  fileOrIdentifier: string
+}
+
 // Story 2.4 — relai pur vers le process principal (voir src/main/index.ts) :
 // chaque méthode ne fait que transmettre l'appel via IPC, aucune logique
 // métier ici (ADR-014) — celle-ci vit dans les Controllers du renderer.
@@ -42,6 +50,12 @@ const mixdeck = {
   // par la vraie chaîne d'effets en 4.3.
   showPluginWindowSpike: (): Promise<void> => ipcRenderer.invoke('mixdeck:showPluginWindowSpike'),
   hidePluginWindowSpike: (): Promise<void> => ipcRenderer.invoke('mixdeck:hidePluginWindowSpike'),
+  // Story 4.1 — découverte des plugins VST3/AU (dossiers standards, ADR-003).
+  // Pas de chargement dans une chaîne d'effets encore (Story 4.3).
+  startPluginScan: (): Promise<void> => ipcRenderer.invoke('mixdeck:startPluginScan'),
+  isPluginScanInProgress: (): Promise<boolean> => ipcRenderer.invoke('mixdeck:isPluginScanInProgress'),
+  getAvailablePlugins: (): Promise<AvailablePlugin[]> =>
+    ipcRenderer.invoke('mixdeck:getAvailablePlugins'),
   // Story 2.5 — sélecteur de fichier natif (dialog.showOpenDialog côté main).
   pickFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickFile'),
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).

@@ -23,4 +23,14 @@ Deck& Engine::getDeck(int index) {
     return index == 0 ? deckA : deckB;
 }
 
+void Engine::startPluginScan() {
+    if (pluginScanInProgress.exchange(true))
+        return; // a scan is already running
+
+    analysisPool.addJob([this] {
+        pluginHost.scanForPlugins();
+        pluginScanInProgress = false;
+    });
+}
+
 } // namespace mixdeck

@@ -60,7 +60,25 @@ MainComponent::MainComponent() {
     crossfaderCurveBox.onChange = [this] { crossfaderCurveChanged(); };
     addAndMakeVisible(crossfaderCurveBox);
 
-    setSize(700, 490);
+    // Story 4.1 — scan bloquant, tourne sur analysisPool (déjà utilisé pour
+    // l'analyse BPM) ; callAsync ramène la mise à jour de l'UI sur le thread
+    // message, seul thread où toucher des Component JUCE est sûr.
+    addAndMakeVisible(pluginScanButton);
+    pluginScanButton.onClick = [this] {
+        pluginScanButton.setEnabled(false);
+        pluginResultsEditor.setText("Scan en cours...", juce::dontSendNotification);
+        analysisPool.addJob([this] {
+            pluginHost.scanForPlugins();
+            juce::MessageManager::callAsync([this] { updatePluginResultsDisplay(); });
+        });
+    };
+
+    pluginResultsEditor.setMultiLine(true);
+    pluginResultsEditor.setReadOnly(true);
+    pluginResultsEditor.setText("Aucun scan effectue.", juce::dontSendNotification);
+    addAndMakeVisible(pluginResultsEditor);
+
+    setSize(700, 560);
     setAudioChannels(0, 2); // no input, stereo output
 }
 
@@ -84,6 +102,19 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 float MainComponent::computeSyncPitch(float ownBpm, float otherEffectiveBpm) {
     const auto raw = (otherEffectiveBpm / ownBpm - 1.0f) * 100.0f;
     return juce::jlimit(-50.0f, 50.0f, raw);
+}
+
+void MainComponent::updatePluginResultsDisplay() {
+    const auto plugins = pluginHost.getAvailablePlugins();
+
+    juce::String text;
+    for (const auto& plugin : plugins)
+        text << plugin.pluginFormatName << " - " << plugin.name << "\n";
+    if (text.isEmpty())
+        text = "Aucun plugin trouve.";
+
+    pluginResultsEditor.setText(text, juce::dontSendNotification);
+    pluginScanButton.setEnabled(true);
 }
 
 void MainComponent::crossfaderCurveChanged() {
@@ -114,6 +145,11 @@ void MainComponent::resized() {
     crossfaderCurveBox.setBounds(middleArea.removeFromTop(24));
     middleArea.removeFromTop(16);
     crossfaderSlider.setBounds(middleArea.removeFromTop(40));
+
+    middleArea.removeFromTop(24);
+    pluginScanButton.setBounds(middleArea.removeFromTop(28));
+    middleArea.removeFromTop(8);
+    pluginResultsEditor.setBounds(middleArea);
 }
 
 } // namespace mixdeck
