@@ -78,7 +78,12 @@ function registerBridgeHandlers(nativeEngine: any): void {
     'mixerSetCrossfaderCurve'
   ] as const
 
-  for (const method of [...deckMethods, ...mixerMethods]) {
+  // Story 4.0 — spike prouvant qu'une vue native JUCE peut s'incruster dans
+  // la fenêtre Electron (voir setHostWindowHandle plus bas). Pas de
+  // rattachement par deck ici : c'est de l'infrastructure, pas du moteur audio.
+  const pluginSpikeMethods = ['showPluginWindowSpike', 'hidePluginWindowSpike'] as const
+
+  for (const method of [...deckMethods, ...mixerMethods, ...pluginSpikeMethods]) {
     ipcMain.handle(`mixdeck:${method}`, (_event, ...args) => nativeEngine[method](...args))
   }
 }
@@ -110,6 +115,14 @@ app.whenReady().then(() => {
   }
 
   const mainWindow = createWindow()
+
+  // Story 4.0 — donne au Bridge le handle natif (NSView* sur macOS) de la
+  // fenêtre Electron, pour que le spike d'incrustation JUCE puisse s'y
+  // rattacher (voir NodeBinding.cpp::SetHostWindowHandle). Direct, pas
+  // besoin d'IPC : le process principal a déjà accès aux deux objets ici.
+  if (nativeEngine) {
+    nativeEngine.setHostWindowHandle(mainWindow.getNativeWindowHandle())
+  }
 
   // Story 2.6 (ADR-015) — pousse les changements d'état/position au renderer
   // au lieu qu'il les demande (voir src/main/engineEvents.ts).

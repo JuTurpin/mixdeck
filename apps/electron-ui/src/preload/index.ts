@@ -37,6 +37,11 @@ const mixdeck = {
     ipcRenderer.invoke('mixdeck:mixerSetCrossfaderPosition', position),
   mixerSetCrossfaderCurve: (curve: string): Promise<void> =>
     ipcRenderer.invoke('mixdeck:mixerSetCrossfaderCurve', curve),
+  // Story 4.0 — spike : incrustation d'une vue de test JUCE dans la fenêtre
+  // Electron (voir NodeBinding.cpp::PluginWindowSpike). À retirer/remplacer
+  // par la vraie chaîne d'effets en 4.3.
+  showPluginWindowSpike: (): Promise<void> => ipcRenderer.invoke('mixdeck:showPluginWindowSpike'),
+  hidePluginWindowSpike: (): Promise<void> => ipcRenderer.invoke('mixdeck:hidePluginWindowSpike'),
   // Story 2.5 — sélecteur de fichier natif (dialog.showOpenDialog côté main).
   pickFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickFile'),
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).

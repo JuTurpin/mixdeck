@@ -1,5 +1,6 @@
 #include <napi.h>
 #include "Engine.h"
+#include "PluginWindowSpike.h"
 
 namespace {
 
@@ -25,6 +26,9 @@ public:
             InstanceMethod("mixerSetDeckVolume", &NativeEngine::MixerSetDeckVolume),
             InstanceMethod("mixerSetCrossfaderPosition", &NativeEngine::MixerSetCrossfaderPosition),
             InstanceMethod("mixerSetCrossfaderCurve", &NativeEngine::MixerSetCrossfaderCurve),
+            InstanceMethod("setHostWindowHandle", &NativeEngine::SetHostWindowHandle),
+            InstanceMethod("showPluginWindowSpike", &NativeEngine::ShowPluginWindowSpike),
+            InstanceMethod("hidePluginWindowSpike", &NativeEngine::HidePluginWindowSpike),
         });
 
         exports.Set("NativeEngine", func);
@@ -35,6 +39,14 @@ public:
 
 private:
     mixdeck::Engine engine;
+
+    // Story 4.0 — spike proving JUCE GUI can live inside Electron's process.
+    // Declaration order matters here: juceGuiInit is constructed first and
+    // destroyed last, so pluginWindowSpike (constructed after) is always
+    // torn down before JUCE's GUI machinery shuts down.
+    juce::ScopedJuceInitialiser_GUI juceGuiInit;
+    mixdeck::PluginWindowSpike pluginWindowSpike;
+    void* hostWindowHandle = nullptr; // NSView* (macOS) — Electron owns the real view
 
     mixdeck::Deck& DeckFromArg(const Napi::CallbackInfo& info, size_t argIndex) {
         const auto index = info[argIndex].As<Napi::Number>().Int32Value();
@@ -129,6 +141,29 @@ private:
         else if (name == "cut")
             curve = mixdeck::CrossfaderCurve::Cut;
         engine.getMixer().setCrossfaderCurve(curve);
+        return info.Env().Undefined();
+    }
+
+    // Story 4.0 — info[0] is the Buffer returned by Electron's
+    // BrowserWindow.getNativeWindowHandle(): its BYTES are the native handle
+    // (NSView* on macOS), not its .Data() pointer itself — the buffer must be
+    // dereferenced as a pointer, a detail that has caused real crashes for
+    // others attempting this (see Story 4.0 plan notes).
+    Napi::Value SetHostWindowHandle(const Napi::CallbackInfo& info) {
+        const auto buffer = info[0].As<Napi::Buffer<uint8_t>>();
+        if (buffer.ByteLength() >= sizeof(void*))
+            hostWindowHandle = *reinterpret_cast<void* const*>(buffer.Data());
+        return info.Env().Undefined();
+    }
+
+    Napi::Value ShowPluginWindowSpike(const Napi::CallbackInfo& info) {
+        if (hostWindowHandle != nullptr)
+            pluginWindowSpike.attachToNativeParent(hostWindowHandle);
+        return info.Env().Undefined();
+    }
+
+    Napi::Value HidePluginWindowSpike(const Napi::CallbackInfo& info) {
+        pluginWindowSpike.hide();
         return info.Env().Undefined();
     }
 };

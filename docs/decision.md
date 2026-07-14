@@ -63,12 +63,11 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 **Impact** : Epic 6 de `roadmap.md` simplifié (renommé "Build local & lancement"), suppression des stories liées à la signature/notarization/distribution.
 **Statut** : Accepté.
 
-### ADR-011 — Interface d'édition des plugins : GUI native vs knobs génériques (ouvert)
+### ADR-011 — Interface d'édition des plugins : GUI native du plugin
 **Contexte** : le mock de design (Claude Design) montre une modale avec 6 knobs génériques ("Param 1"...) pour éditer un plugin, plutôt que l'interface graphique propre au plugin.
-**Décision à prendre** : deux options possibles à trancher en Epic 4 —
-  1. **GUI native du plugin** (fenêtre native JUCE embarquant l'éditeur réel du plugin) : fidèle à l'expérience DAW habituelle, mais plus complexe à intégrer dans une fenêtre Electron/React (nécessite une vue native superposée).
-  2. **Surface de contrôle générique** (knobs mappés sur les premiers paramètres exposés par le plugin, comme dans le mock) : plus simple à coder en React et cohérent visuellement avec le reste de l'app, mais incomplet pour des plugins à interface complexe.
-**Statut** : Ouvert — à trancher avant de démarrer la story 4.3 (chaîne d'effets par deck).
+**Décision** : GUI native du plugin (fenêtre native JUCE embarquant l'éditeur réel du plugin) — fidèle à l'expérience DAW habituelle, choix de Julien. Implique de lier la variante GUI de `juce_audio_processors` côté Bridge Electron (aujourd'hui seule la variante headless, sans GUI, est liée dans `engine-core`, partagée avec le Bridge Node qui n'a pas de fenêtre), et de résoudre l'incrustation d'une fenêtre/vue native JUCE par-dessus ou dans la fenêtre Electron — un chantier de windowing natif à part entière, à cadrer avant/pendant la story 4.3.
+**Alternatives écartées** : surface de contrôle générique (knobs mappés sur les premiers paramètres exposés par le plugin, comme dans le mock) — restait entièrement dans l'architecture headless actuelle, plus simple à intégrer en React, mais incomplète pour des plugins à interface riche ; non retenue.
+**Statut** : Accepté.
 
 ### ADR-012 — Politique de sécurité des dépendances : épinglage strict + SBOM + veille vulnérabilités
 **Contexte** : dès la première dépendance externe du projet (submodule JUCE, Story 1.1), Julien souhaite poser une philosophie durable de gestion des mises à jour de sécurité, plutôt que de l'improviser epic après epic.

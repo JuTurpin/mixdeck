@@ -49,7 +49,7 @@ Objectif : valider le DSP à l'oreille avant d'investir dans le bridge Electron.
 **Dépend de** : Epic 2. Peut être menée en parallèle de l'Epic 4.
 
 ### Epic 4 — Plugins VST3 / Audio Unit
-4.0 Trancher GUI native vs knobs génériques pour l'éditeur de plugin (voir `decision.md` ADR-011) — préalable à 4.3
+4.0 GUI native du plugin tranchée (voir `decision.md` ADR-011) — cadrer l'incrustation d'une fenêtre/vue native JUCE dans Electron, préalable à 4.3
 4.1 Scan automatique des dossiers standards (VST3 + AU)
 4.2 Sélection manuelle du chemin d'un plugin (bouton "Parcourir" / glisser-déposer)
 4.3 Chaîne d'effets par deck (ajout / retrait / réordonnancement)

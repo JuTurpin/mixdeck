@@ -34,7 +34,7 @@ Time-stretch indépendant (SoundTouch, ADR-006), détection BPM à l'import (`Bp
 | 3 — Pitch avancé | 3.1 Time-stretch (SoundTouch) | ✅ Fait | ADR-006 tranché. `TimeStretch`/`PitchMode` intégrés dans `Deck`, backend uniquement (pas de toggle React). Un bug de saccade initial (granularité par lots de SoundTouch mal absorbée) corrigé via un tampon de sécurité (~185ms). **Validé à l'oreille par Julien** via le harnais standalone (`DeckPanel`), y compris avec deux pistes en lecture simultanée et mouvements brusques sur les curseurs. |
 | 3 — Pitch avancé | 3.2 Détection BPM | ✅ Fait | `BpmAnalyzer` (SoundTouch `BPMDetect`, aucune nouvelle dépendance) analysé en tâche de fond (`juce::ThreadPool` partagé, 1er job async du projet) au chargement d'un morceau. BPM effectif (ajusté au pitch) affiché dans l'en-tête du Deck (React) + label dans le harnais standalone. Repliement par octave (90-180 BPM) ajouté après une détection à moitié tempo constatée par Julien sur un morceau. **Validé par Julien** sur deux pistes (une correcte d'emblée, l'autre corrigée par le repliement). Beat-grid calculé et stocké côté C++ (`Deck::getBeatGrid()`) mais pas encore exposé au Bridge — aucun consommateur (pas de waveform). |
 | 3 — Pitch avancé | 3.3 Sync automatique | ✅ Fait | Bouton Sync par deck (`DeckController.computeSyncPitch`), réutilise `setPitch`/`getBpm` (3.1/3.2) — aucun changement natif. Revu en cours de validation : verrou **continu** (pas ponctuel) sur demande de Julien — tant que le verrou est actif, tout changement de pitch/BPM de l'autre deck réapplique le pitch de celui-ci ; reprendre la main sur le slider désengage le verrou. État de synchro (bpm/pitch par deck) remonté dans `App.tsx`, premier état partagé entre les deux decks. Harnais standalone : Sync reste **ponctuel** (pas de verrou), écart assumé et communiqué à Julien. **Validé par Julien** sur Electron. **Epic 3 terminé.** |
-| 4 — Plugins VST3/AU | 4.0 GUI native vs knobs génériques | ⬜ Ouvert | Décision à prendre — ADR-011 |
+| 4 — Plugins VST3/AU | 4.0 GUI native du plugin | ✅ Fait | Spike technique : `PluginWindowSpike` (Component JUCE avec slider+label) incrusté dans la fenêtre Electron via `addToDesktop(0, hostWindowHandle)`, `ScopedJuceInitialiser_GUI` en membre de `NativeEngine` (pas de conflit avec la boucle d'événements d'Electron/macOS, le message queue JUCE s'attache au `CFRunLoopGetMain()` déjà existant). Handle natif transmis directement (pas d'IPC) via `BrowserWindow.getNativeWindowHandle()` → `setHostWindowHandle`. Julien a choisi l'incrustation vraie plutôt qu'une fenêtre flottante séparée, malgré le risque plus élevé signalé (déréférencement du buffer natif). **Validé par Julien** : aucun souci (pas de crash, pas de scintillement). Rien dans le harnais standalone (n'a pas ce besoin, déjà une vraie fenêtre JUCE). |
 | 4 — Plugins VST3/AU | 4.1 Scan automatique | ⬜ À faire | |
 | 4 — Plugins VST3/AU | 4.2 Sélection manuelle du chemin | ⬜ À faire | |
 | 4 — Plugins VST3/AU | 4.3 Chaîne d'effets par deck | ⬜ À faire | Dépend de 4.0 |
@@ -48,7 +48,7 @@ Time-stretch indépendant (SoundTouch, ADR-006), détection BPM à l'import (`Bp
 
 ## Prochaine action
 
-Epic 3 terminé (Story 3.3 validée). Prochaine étape : Epic 4 (plugins VST3/AU) — commencer par trancher ADR-011 (GUI native vs knobs génériques, story 4.0) avant la story 4.3.
+Story 4.0 (spike incrustation JUCE/Electron) validée. Poursuivre l'Epic 4 avec la Story 4.1 (scan automatique des dossiers standards VST3/AU), avec son propre plan dédié.
 
 ## Journal des mises à jour
 
