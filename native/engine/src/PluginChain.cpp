@@ -44,13 +44,15 @@ void PluginChain::prepare(double sampleRate, int maxBlockSize) {
 
     const auto snapshot = activeChain.load();
     for (const auto& slot : snapshot->slots)
-        slot->instance->prepareToPlay(sampleRate, maxBlockSize);
+        if (slot->instance != nullptr) // null for an isolated (Story 4.4.1) slot
+            slot->instance->prepareToPlay(sampleRate, maxBlockSize);
 }
 
 void PluginChain::releaseResources() {
     const auto snapshot = activeChain.load();
     for (const auto& slot : snapshot->slots)
-        slot->instance->releaseResources();
+        if (slot->instance != nullptr)
+            slot->instance->releaseResources();
 }
 
 void PluginChain::process(const juce::AudioSourceChannelInfo& bufferToFill) {
@@ -65,7 +67,10 @@ void PluginChain::process(const juce::AudioSourceChannelInfo& bufferToFill) {
                                    bufferToFill.numSamples);
 
     for (const auto& slot : snapshot->slots) {
-        if (slot->bypassed.load())
+        // Story 4.4.1 — an isolated slot has no local AudioPluginInstance to
+        // call; it's treated as silent/bypassed on the real-time path until
+        // Story 4.4.2 wires the actual cross-process audio streaming.
+        if (slot->bypassed.load() || slot->isolated)
             continue;
         slot->instance->processBlock(view, scratchMidiBuffer);
         scratchMidiBuffer.clear(); // a plugin may emit MIDI even without receiving any
@@ -81,6 +86,28 @@ void PluginChain::addPlugin(const juce::String& pluginIdentifier) {
         lastAddError = {};
     }
 
+    juce::PluginDescription description;
+    if (!pluginHost.findPluginDescription(pluginIdentifier, description)) {
+        std::lock_guard<std::mutex> lock(addErrorMutex);
+        lastAddError = "Plugin inconnu : " + pluginIdentifier;
+        addingPlugin = false;
+        return;
+    }
+
+    // Story 4.4.1 (ADR-005) — VST3 is isolated in its own worker process; AU
+    // stays in-process, as it generally must on macOS anyway (AppKit
+    // constraints). Only the in-process path needs the background pool:
+    // instantiation there can be genuinely slow (plugin scan/init on disk).
+    // The isolated path's own instantiation happens inside the worker
+    // process and reports back asynchronously regardless of what thread
+    // kicks it off.
+    if (description.pluginFormatName == "VST3")
+        addIsolatedPlugin(description);
+    else
+        addInProcessPlugin(pluginIdentifier);
+}
+
+void PluginChain::addInProcessPlugin(const juce::String& pluginIdentifier) {
     backgroundPool.addJob([this, pluginIdentifier] {
         juce::String error;
         auto instance = pluginHost.instantiatePlugin(pluginIdentifier, currentSampleRate, currentBlockSize, error);
@@ -106,6 +133,45 @@ void PluginChain::addPlugin(const juce::String& pluginIdentifier) {
     });
 }
 
+void PluginChain::addIsolatedPlugin(const juce::PluginDescription& description) {
+    auto slot = std::make_shared<Slot>();
+    slot->name = description.name;
+    slot->isolated = true;
+    slot->isolatedHost = std::make_unique<IsolatedPluginHost>();
+
+    // Raw pointer, not a captured shared_ptr<Slot>: onCrashed is a member of
+    // isolatedHost, which is itself owned by this same Slot — capturing the
+    // Slot's own shared_ptr here would create an ownership cycle (Slot ->
+    // owns -> IsolatedPluginHost -> closure -> shared_ptr -> Slot) that would
+    // leak both the Slot and its worker process. Safe as a raw pointer: the
+    // closure is destroyed together with isolatedHost, which is destroyed
+    // together with the Slot — it can never fire after the Slot is gone.
+    auto* slotPtr = slot.get();
+    slot->isolatedHost->onCrashed = [slotPtr] { slotPtr->crashed = true; };
+
+    // Keeps the Slot alive between here and the load callback below — it has
+    // no other owner yet (not published into a ChainSnapshot until success).
+    pendingIsolatedSlot = slot;
+
+    slot->isolatedHost->load(pluginHost.getWorkerExecutablePath(), description, currentSampleRate, currentBlockSize,
+        [this](bool success, juce::String error) {
+            auto resolvedSlot = std::exchange(pendingIsolatedSlot, nullptr);
+
+            if (success) {
+                std::lock_guard<std::mutex> lock(controlMutex);
+                const auto current = activeChain.load();
+                auto next = std::make_shared<ChainSnapshot>(*current);
+                next->slots.push_back(std::move(resolvedSlot));
+                publishLocked(std::move(next));
+            } else {
+                std::lock_guard<std::mutex> lock(addErrorMutex);
+                lastAddError = error.isNotEmpty() ? error : "Impossible de charger le plugin isole.";
+            }
+
+            addingPlugin = false;
+        });
+}
+
 juce::String PluginChain::getLastAddError() const {
     std::lock_guard<std::mutex> lock(addErrorMutex);
     return lastAddError;
@@ -117,10 +183,14 @@ void PluginChain::removePlugin(int index) {
     if (index < 0 || (size_t) index >= current->slots.size())
         return;
 
-    // Editor teardown is message-thread-only (like any juce::Component) — do
-    // it before publishing a snapshot without this slot. removePlugin() is
-    // only ever called from the message thread (via the Bridge), so this is safe.
+    // Editor/worker teardown is message-thread-only (like any juce::Component,
+    // and IsolatedPluginHost's own coordinator/worker plumbing) — do it before
+    // publishing a snapshot without this slot. removePlugin() is only ever
+    // called from the message thread (via the Bridge), so this is safe.
+    // Exactly one of the two is ever non-null; resetting both unconditionally
+    // avoids branching on `isolated` here.
     current->slots[(size_t) index]->editorHost.reset();
+    current->slots[(size_t) index]->isolatedHost.reset(); // kills the worker process (ChildProcessCoordinator dtor)
 
     auto next = std::make_shared<ChainSnapshot>();
     for (size_t i = 0; i < current->slots.size(); ++i)
@@ -161,6 +231,16 @@ void PluginChain::showPluginEditor(int index, void* hostWindowHandle) {
         return;
 
     auto& slot = *current->slots[(size_t) index];
+
+    // Story 4.4.1 — an isolated plugin's editor lives in its own process: it
+    // opens as an independent top-level window there (see PluginWorkerMain),
+    // not incrusted here — hostWindowHandle is irrelevant for this path.
+    if (slot.isolated) {
+        if (slot.isolatedHost != nullptr)
+            slot.isolatedHost->showEditor();
+        return;
+    }
+
     if (slot.editorHost == nullptr) {
         std::unique_ptr<juce::AudioProcessorEditor> editor(slot.instance->createEditorAndMakeActive());
         if (editor == nullptr)
@@ -191,7 +271,15 @@ void PluginChain::hidePluginEditor(int index) {
     const auto current = activeChain.load();
     if (index < 0 || (size_t) index >= current->slots.size())
         return;
-    if (auto& host = current->slots[(size_t) index]->editorHost)
+
+    auto& slot = *current->slots[(size_t) index];
+    if (slot.isolated) {
+        if (slot.isolatedHost != nullptr)
+            slot.isolatedHost->hideEditor();
+        return;
+    }
+
+    if (auto& host = slot.editorHost)
         host->setVisible(false);
 }
 
@@ -200,7 +288,7 @@ std::vector<PluginChain::SlotInfo> PluginChain::getSlots() const {
     std::vector<SlotInfo> result;
     result.reserve(snapshot->slots.size());
     for (const auto& slot : snapshot->slots)
-        result.push_back({ slot->name, slot->bypassed.load() });
+        result.push_back({ slot->name, slot->bypassed.load(), slot->isolated, slot->crashed.load() });
     return result;
 }
 

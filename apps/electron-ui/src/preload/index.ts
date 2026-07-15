@@ -12,9 +12,12 @@ export interface AvailablePlugin {
 }
 
 // Story 4.3 — un slot de la chaîne d'effets (deck ou bus master).
+// isolated/crashed ajoutés en Story 4.4.1 (isolation hors-process VST3).
 export interface PluginChainSlot {
   name: string
   bypassed: boolean
+  isolated: boolean
+  crashed: boolean
 }
 
 // Story 2.4 — relai pur vers le process principal (voir src/main/index.ts) :

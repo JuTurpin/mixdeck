@@ -26,6 +26,7 @@ public:
             InstanceMethod("mixerSetCrossfaderPosition", &NativeEngine::MixerSetCrossfaderPosition),
             InstanceMethod("mixerSetCrossfaderCurve", &NativeEngine::MixerSetCrossfaderCurve),
             InstanceMethod("setHostWindowHandle", &NativeEngine::SetHostWindowHandle),
+            InstanceMethod("setPluginWorkerExecutablePath", &NativeEngine::SetPluginWorkerExecutablePath),
             InstanceMethod("startPluginScan", &NativeEngine::StartPluginScan),
             InstanceMethod("isPluginScanInProgress", &NativeEngine::IsPluginScanInProgress),
             InstanceMethod("getAvailablePlugins", &NativeEngine::GetAvailablePlugins),
@@ -179,6 +180,17 @@ private:
         return info.Env().Undefined();
     }
 
+    // Story 4.4.1 — where to find the MixDeckPluginWorker executable used for
+    // VST3 isolation (see PluginHost::setWorkerExecutablePath). Electron
+    // computes this the same way it computes the Bridge's own path
+    // (main/index.ts), since Node/Electron's own executable location has
+    // nothing to do with the CMake build layout.
+    Napi::Value SetPluginWorkerExecutablePath(const Napi::CallbackInfo& info) {
+        const auto path = info[0].As<Napi::String>().Utf8Value();
+        engine.setPluginWorkerExecutablePath(juce::String(path));
+        return info.Env().Undefined();
+    }
+
     Napi::Value StartPluginScan(const Napi::CallbackInfo& info) {
         engine.startPluginScan();
         return info.Env().Undefined();
@@ -209,14 +221,17 @@ private:
         return Napi::String::New(info.Env(), error.toStdString());
     }
 
-    // Story 4.3 — converts a PluginChain snapshot into { name, bypassed }[],
-    // reused for both deck and master chains.
+    // Story 4.3 — converts a PluginChain snapshot into an array of slot
+    // objects, reused for both deck and master chains. isolated/crashed
+    // added in Story 4.4.1.
     static Napi::Value SlotsToArray(Napi::Env env, const std::vector<mixdeck::PluginChain::SlotInfo>& slots) {
         auto result = Napi::Array::New(env, slots.size());
         for (size_t i = 0; i < slots.size(); ++i) {
             auto entry = Napi::Object::New(env);
             entry.Set("name", slots[i].name.toStdString());
             entry.Set("bypassed", slots[i].bypassed);
+            entry.Set("isolated", slots[i].isolated);
+            entry.Set("crashed", slots[i].crashed);
             result[i] = entry;
         }
         return result;

@@ -140,19 +140,40 @@ export default function PluginChainPanel({
         >
           <div
             onClick={() => handleShowEditor(index)}
-            title={activeEditorIndex === index ? 'Éditeur déjà au premier plan' : "Ouvrir l'éditeur du plugin"}
+            title={
+              slot.crashed
+                ? 'Le process de ce plugin a planté — retirez-le et rajoutez-le pour réessayer'
+                : activeEditorIndex === index
+                  ? 'Éditeur déjà au premier plan'
+                  : "Ouvrir l'éditeur du plugin"
+            }
             style={{
               flex: 1,
               cursor: 'pointer',
               font: '500 11px system-ui',
-              color: slot.bypassed ? '#565a63' : activeEditorIndex === index ? '#4fd1c5' : '#c9cdd4',
+              color: slot.crashed
+                ? '#f0955a'
+                : slot.bypassed
+                  ? '#565a63'
+                  : activeEditorIndex === index
+                    ? '#4fd1c5'
+                    : '#c9cdd4',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               minWidth: 0
             }}
           >
+            {slot.isolated && (
+              <span
+                title="Plugin isolé dans son propre process (VST3, Story 4.4.1)"
+                style={{ fontSize: 8, color: '#565a63', marginRight: 4 }}
+              >
+                ISO
+              </span>
+            )}
             {slot.name}
+            {slot.crashed && ' (planté)'}
           </div>
           {activeEditorIndex === index && (
             <button

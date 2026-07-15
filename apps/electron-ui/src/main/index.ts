@@ -52,7 +52,20 @@ function createNativeEngine(): any {
   )
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { NativeEngine } = require(bridgePath)
-  return new NativeEngine()
+  const nativeEngine = new NativeEngine()
+
+  // Story 4.4.1 — chemin de l'exécutable worker utilisé pour l'isolation des
+  // plugins VST3 (voir PluginHost::setWorkerExecutablePath). Calculé comme
+  // bridgePath ci-dessus : le process Node/Electron lui-même ne renseigne
+  // rien d'utile sur l'arborescence de build CMake (voir aussi
+  // setHostWindowHandle plus bas, même raisonnement pour un handle natif).
+  const pluginWorkerPath = join(
+    __dirname,
+    '../../../../native/engine/build-electron/MixDeckPluginWorker_artefacts/Release/MixDeck Plugin Worker.app/Contents/MacOS/MixDeck Plugin Worker'
+  )
+  nativeEngine.setPluginWorkerExecutablePath(pluginWorkerPath)
+
+  return nativeEngine
 }
 
 function registerBridgeHandlers(nativeEngine: any): void {

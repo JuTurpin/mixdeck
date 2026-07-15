@@ -81,19 +81,43 @@ juce::String PluginHost::addPluginFromPath(const juce::String& path) {
     return "Format de plugin non reconnu : " + juce::File(path).getFileName();
 }
 
+bool PluginHost::findPluginDescription(const juce::String& pluginIdentifier,
+                                        juce::PluginDescription& outDescription) const {
+    std::lock_guard<std::mutex> lock(mutex);
+    const auto found = std::find_if(availablePlugins.begin(), availablePlugins.end(), [&](const auto& d) {
+        return d.createIdentifierString() == pluginIdentifier;
+    });
+    if (found == availablePlugins.end())
+        return false;
+    outDescription = *found;
+    return true;
+}
+
+juce::File PluginHost::guessDefaultWorkerExecutablePath() {
+    // Correct when running as MixDeckStandalone (built alongside
+    // MixDeckPluginWorker in the same CMake tree: <buildRoot>/
+    // MixDeckStandalone_artefacts/Release/MixDeck Standalone.app/Contents/
+    // MacOS/MixDeck Standalone, walking up 5 levels reaches <buildRoot>).
+    // Wrong for the Node/Electron bridge, whose own "current executable" is
+    // Node/Electron itself, not mixdeck_bridge.node — Electron overrides this
+    // explicitly at startup instead (setWorkerExecutablePath), same reasoning
+    // as hostWindowHandle being injected rather than auto-discovered.
+    const auto exe = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
+    const auto buildRoot = exe.getParentDirectory()  // MacOS
+                                .getParentDirectory() // Contents
+                                .getParentDirectory() // *.app
+                                .getParentDirectory() // Release
+                                .getParentDirectory(); // <Target>_artefacts
+    return buildRoot.getChildFile(
+        "MixDeckPluginWorker_artefacts/Release/MixDeck Plugin Worker.app/Contents/MacOS/MixDeck Plugin Worker");
+}
+
 std::unique_ptr<juce::AudioPluginInstance> PluginHost::instantiatePlugin(
     const juce::String& pluginIdentifier, double sampleRate, int blockSize, juce::String& error) {
     juce::PluginDescription description;
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        const auto found = std::find_if(availablePlugins.begin(), availablePlugins.end(), [&](const auto& d) {
-            return d.createIdentifierString() == pluginIdentifier;
-        });
-        if (found == availablePlugins.end()) {
-            error = "Plugin inconnu : " + pluginIdentifier;
-            return nullptr;
-        }
-        description = *found;
+    if (!findPluginDescription(pluginIdentifier, description)) {
+        error = "Plugin inconnu : " + pluginIdentifier;
+        return nullptr;
     }
 
     auto instance = formatManager.createPluginInstance(description, sampleRate, blockSize, error);

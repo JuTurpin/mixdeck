@@ -31,6 +31,8 @@ add_library(engine-core STATIC
     src/PluginHost.cpp
     src/PluginChain.cpp
     src/MasterBus.cpp
+    src/PluginWorkerProtocol.cpp
+    src/IsolatedPluginHost.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)
@@ -71,6 +73,29 @@ target_sources(MixDeckStandalone PRIVATE
 )
 
 target_link_libraries(MixDeckStandalone
+    PRIVATE
+        engine-core
+        juce::juce_gui_extra
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)
+
+# Story 4.4.1 (ADR-005) — dedicated child process for VST3 plugin isolation:
+# hosts exactly one plugin instance + its real editor window, launched on
+# demand by IsolatedPluginHost (juce::ChildProcessCoordinator/Worker pair).
+# If a plugin crashes, only this process dies — MixDeckStandalone/the Node
+# Bridge (both link engine-core, never this exe directly) keep running.
+juce_add_gui_app(MixDeckPluginWorker
+    PRODUCT_NAME "MixDeck Plugin Worker"
+    COMPANY_NAME "MixDeck"
+)
+
+target_sources(MixDeckPluginWorker PRIVATE
+    plugin-worker/PluginWorkerMain.cpp
+)
+
+target_link_libraries(MixDeckPluginWorker
     PRIVATE
         engine-core
         juce::juce_gui_extra

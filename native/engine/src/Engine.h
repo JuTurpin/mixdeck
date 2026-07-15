@@ -30,6 +30,14 @@ public:
     // Story 4.2 (ADR-004) — manual path selection, VST3 only (see PluginHost).
     juce::String addPluginFromPath(const juce::String& path) { return pluginHost.addPluginFromPath(path); }
 
+    // Story 4.4.1 — where to find the MixDeckPluginWorker executable used for
+    // VST3 isolation (see PluginHost::setWorkerExecutablePath). Electron
+    // injects this explicitly at startup; the standalone harness relies on
+    // PluginHost's own best-effort default instead.
+    void setPluginWorkerExecutablePath(const juce::String& path) {
+        pluginHost.setWorkerExecutablePath(juce::File(path));
+    }
+
     // Story 4.3 — bus master effects chain (after deckA/deckB are mixed).
     MasterBus& getMasterBus() { return masterBus; }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IsolatedPluginHost.h"
 #include "PluginHost.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <atomic>
@@ -57,6 +58,8 @@ public:
     struct SlotInfo {
         juce::String name;
         bool bypassed;
+        bool isolated; // Story 4.4.1 — VST3 running in its own worker process
+        bool crashed;  // isolated only — the worker process died unexpectedly
     };
     std::vector<SlotInfo> getSlots() const;
 
@@ -90,14 +93,27 @@ private:
     };
 
     struct Slot {
+        // In-process (AU) path — null for an isolated (VST3) slot.
         std::unique_ptr<juce::AudioPluginInstance> instance;
         std::unique_ptr<EditorHost> editorHost;
+        // Isolated (VST3) path (Story 4.4.1) — null for an in-process slot.
+        // `isolated` is set once at construction, before the slot is ever
+        // published through activeChain, and never mutated after — safe to
+        // read from the audio thread without atomics, same reasoning as the
+        // plain `instance`/`editorHost` pointers themselves (see
+        // PluginChain's class comment on the publish/load synchronization).
+        std::unique_ptr<IsolatedPluginHost> isolatedHost;
+        bool isolated = false;
+        std::atomic<bool> crashed { false }; // isolated only, set by IsolatedPluginHost::onCrashed (message thread)
         std::atomic<bool> bypassed { false }; // read by the audio thread, written by the control/message thread
         juce::String name;
     };
     struct ChainSnapshot {
         std::vector<std::shared_ptr<Slot>> slots;
     };
+
+    void addInProcessPlugin(const juce::String& pluginIdentifier); // AU — existing Story 4.3 path, unchanged
+    void addIsolatedPlugin(const juce::PluginDescription& description); // VST3, Story 4.4.1
 
     // Publishes `next`, retiring the oldest generation once the grace period
     // has elapsed. Assumes controlMutex is already held by the caller —
@@ -126,6 +142,14 @@ private:
     std::atomic<bool> addingPlugin { false };
     mutable std::mutex addErrorMutex;
     juce::String lastAddError;
+    // Story 4.4.1 — keeps an isolated Slot alive between addIsolatedPlugin()
+    // kicking off the async load and its completion callback, before the
+    // slot has any other owner (not yet published into a ChainSnapshot). The
+    // completion callback captures `this` (PluginChain, never torn down
+    // mid-session — same precedent as addInProcessPlugin's background job)
+    // rather than a shared_ptr to the slot itself, to avoid a Slot -> owns ->
+    // IsolatedPluginHost -> closure -> shared_ptr -> Slot ownership cycle.
+    std::shared_ptr<Slot> pendingIsolatedSlot;
 
     double currentSampleRate = 44100.0;
     int currentBlockSize = 512;

@@ -1,7 +1,7 @@
 # MixDeck — decision.md
 
 > Journal des décisions techniques (ADR — Architecture Decision Record).
-> Dernière mise à jour : 2026-07-11
+> Dernière mise à jour : 2026-07-15
 > Voir aussi : `architecture.md`, `roadmap.md`, `progress.md`
 
 Chaque entrée : contexte → décision → alternatives écartées → statut.
@@ -33,7 +33,8 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 ### ADR-005 — Hébergement des plugins hors-process (au moins Windows)
 **Contexte** : un plugin tiers instable ne doit pas faire planter toute l'application.
 **Décision** : isolation hors-process recommandée, en particulier sur Windows. Sur macOS, l'hébergement Audio Unit reste généralement dans le process principal du fait des contraintes AppKit.
-**Statut** : Accepté (à confirmer en implémentation, Epic 4.4).
+**Confirmé en implémentation (Story 4.4.1)** : MixDeck ne ciblant que macOS, seul VST3 est isolé (process dédié `MixDeckPluginWorker` par instance, `juce::ChildProcessCoordinator`/`Worker`) ; AU reste en process principal comme anticipé. Compromis assumé avec Julien : l'éditeur d'un plugin VST3 isolé s'ouvre en fenêtre indépendante réelle plutôt qu'incrusté (incrustation cross-process non réalisable sur macOS sans API privées fragiles). Le streaming audio réel à travers un plugin isolé est repoussé à la Story 4.4.2 (4.4.1 couvre le cycle de vie/la détection de crash, pas encore le traitement du signal).
+**Statut** : Accepté.
 
 ### ADR-006 — Bibliothèque de time-stretch : SoundTouch
 **Contexte** : le pitch indépendant de la vitesse (Epic 3, Story 3.1) nécessite un algorithme de time-stretch de qualité, en plus du mode "vitesse liée" existant (resampling, Story 1.4). Deux candidates évaluées : Rubber Band Library (GPLv2+, licence commerciale requise seulement en cas de distribution propriétaire) et SoundTouch (LGPL-2.1). Usage strictement personnel non distribué (ADR-010) : aucune des deux licences n'est bloquante.

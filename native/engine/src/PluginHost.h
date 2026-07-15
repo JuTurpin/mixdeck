@@ -43,10 +43,31 @@ public:
     std::unique_ptr<juce::AudioPluginInstance> instantiatePlugin(
         const juce::String& pluginIdentifier, double sampleRate, int blockSize, juce::String& error);
 
+    // Story 4.4.1 — looked up by PluginChain when a plugin needs to be handed
+    // off to an isolated worker process (VST3 only) instead of instantiated
+    // in-process: the full description travels across the IPC boundary (see
+    // PluginWorkerProtocol), since the worker's own PluginHost never scanned
+    // anything and has no list to look the identifier up in.
+    bool findPluginDescription(const juce::String& pluginIdentifier, juce::PluginDescription& outDescription) const;
+
+    // Story 4.4.1 — where to find the MixDeckPluginWorker executable used for
+    // VST3 isolation. Defaults to a best-effort guess relative to this
+    // process's own executable (correct for the standalone harness, which is
+    // built in the same CMake tree); Electron overrides this explicitly at
+    // startup (setPluginWorkerExecutablePath, NodeBinding.cpp) since a Node/
+    // Electron host's own executable path has nothing to do with the CMake
+    // build layout, the same reasoning as why hostWindowHandle is injected
+    // rather than auto-discovered.
+    juce::File getWorkerExecutablePath() const { return workerExecutablePath; }
+    void setWorkerExecutablePath(const juce::File& path) { workerExecutablePath = path; }
+
 private:
+    static juce::File guessDefaultWorkerExecutablePath();
+
     juce::AudioPluginFormatManager formatManager;
     mutable std::mutex mutex;
     std::vector<juce::PluginDescription> availablePlugins; // guarded by mutex
+    juce::File workerExecutablePath { guessDefaultWorkerExecutablePath() };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginHost)
 };
