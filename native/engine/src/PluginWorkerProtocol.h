@@ -18,6 +18,9 @@ enum class WorkerMessageType : uint8_t {
     loadPlugin = 1,
     showEditor = 2,
     hideEditor = 3,
+    // Both directions (Story 4.4.2) — coordinator -> worker: a block to
+    // process; worker -> coordinator: the processed result.
+    audioBlock = 4,
     // Worker -> coordinator
     pluginLoaded = 10,
     pluginLoadFailed = 11,
@@ -39,5 +42,16 @@ juce::MemoryBlock makeSimpleMessage(WorkerMessageType type);
 
 juce::MemoryBlock makePluginLoadFailedMessage(const juce::String& error);
 juce::String readErrorMessage(const juce::MemoryBlock& message);
+
+// Story 4.4.2 — audioBlock, both directions. Raw per-channel copy (no
+// sample-by-sample loop, no endianness handling needed: both processes run
+// on the same machine/architecture). Only ever built/read off the audio
+// thread (the send-pump thread, or JUCE's own IPC delivery thread) — see
+// IsolatedPluginHost. readAudioBlockMessage writes into outBuffer, which the
+// caller must already have sized to match (both sides agreed on channel
+// count/block size when the plugin was loaded); returns false on a malformed
+// message instead of resizing anything.
+juce::MemoryBlock makeAudioBlockMessage(const juce::AudioBuffer<float>& buffer);
+bool readAudioBlockMessage(const juce::MemoryBlock& message, juce::AudioBuffer<float>& outBuffer);
 
 } // namespace mixdeck

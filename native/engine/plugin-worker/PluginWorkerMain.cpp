@@ -37,7 +37,23 @@ public:
                         mixdeck::makePluginLoadFailedMessage(error.isNotEmpty() ? error : "Impossible de charger le plugin."));
                     return;
                 }
+
+                // Mirrors PluginHost::instantiatePlugin's in-process check (Story 4.3):
+                // MixDeck is stereo throughout (Deck/Mixer/MasterBus), and the
+                // audioBlock wire format (Story 4.4.2) assumes a fixed 2-channel
+                // shape agreed once here, not re-negotiated per block.
+                juce::AudioProcessor::BusesLayout stereoInOut;
+                stereoInOut.inputBuses.add(juce::AudioChannelSet::stereo());
+                stereoInOut.outputBuses.add(juce::AudioChannelSet::stereo());
+                if (!instance->checkBusesLayoutSupported(stereoInOut) || !instance->setBusesLayout(stereoInOut)) {
+                    instance.reset();
+                    sendMessageToCoordinator(mixdeck::makePluginLoadFailedMessage(
+                        "Ce plugin ne supporte pas un bus stereo standard (entree + sortie)."));
+                    return;
+                }
+
                 instance->prepareToPlay(sampleRate, blockSize);
+                scratchAudio.setSize(2, blockSize);
                 sendMessageToCoordinator(mixdeck::makeSimpleMessage(WorkerMessageType::pluginLoaded));
                 break;
             }
@@ -49,6 +65,17 @@ public:
                     if (editor != nullptr)
                         editor->setVisible(false);
                 });
+                break;
+            case WorkerMessageType::audioBlock:
+                // Story 4.4.2 — processed synchronously right here, already off
+                // the message thread (see class comment); no dedicated
+                // processing thread needed on this side, unlike the real
+                // real-time audio thread on the coordinator's side.
+                if (instance != nullptr && mixdeck::readAudioBlockMessage(message, scratchAudio)) {
+                    instance->processBlock(scratchAudio, scratchMidi);
+                    scratchMidi.clear(); // a plugin may emit MIDI even without receiving any
+                    sendMessageToCoordinator(mixdeck::makeAudioBlockMessage(scratchAudio));
+                }
                 break;
             case WorkerMessageType::pluginLoaded:
             case WorkerMessageType::pluginLoadFailed:
@@ -97,6 +124,10 @@ private:
     juce::AudioPluginFormatManager formatManager;
     std::unique_ptr<juce::AudioPluginInstance> instance;
     std::unique_ptr<juce::AudioProcessorEditor> editor;
+    // Story 4.4.2 — reused for every audioBlock message (sized once the
+    // plugin loads, see loadPlugin above) rather than reallocated per block.
+    juce::AudioBuffer<float> scratchAudio;
+    juce::MidiBuffer scratchMidi; // always cleared after each processBlock call, never fed
 };
 
 class MixDeckPluginWorkerApplication : public juce::JUCEApplication {

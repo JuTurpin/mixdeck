@@ -43,16 +43,24 @@ void PluginChain::prepare(double sampleRate, int maxBlockSize) {
     currentBlockSize = maxBlockSize;
 
     const auto snapshot = activeChain.load();
-    for (const auto& slot : snapshot->slots)
-        if (slot->instance != nullptr) // null for an isolated (Story 4.4.1) slot
+    for (const auto& slot : snapshot->slots) {
+        if (slot->instance != nullptr) // null for an isolated slot
             slot->instance->prepareToPlay(sampleRate, maxBlockSize);
+        // Story 4.4.2 — MixDeck is stereo throughout (Deck/Mixer/MasterBus),
+        // hardcoded here same as the worker side (PluginWorkerMain.cpp).
+        if (slot->isolatedHost != nullptr)
+            slot->isolatedHost->prepareAudio(2, maxBlockSize);
+    }
 }
 
 void PluginChain::releaseResources() {
     const auto snapshot = activeChain.load();
-    for (const auto& slot : snapshot->slots)
+    for (const auto& slot : snapshot->slots) {
         if (slot->instance != nullptr)
             slot->instance->releaseResources();
+        if (slot->isolatedHost != nullptr)
+            slot->isolatedHost->releaseAudio();
+    }
 }
 
 void PluginChain::process(const juce::AudioSourceChannelInfo& bufferToFill) {
@@ -67,11 +75,24 @@ void PluginChain::process(const juce::AudioSourceChannelInfo& bufferToFill) {
                                    bufferToFill.numSamples);
 
     for (const auto& slot : snapshot->slots) {
-        // Story 4.4.1 — an isolated slot has no local AudioPluginInstance to
-        // call; it's treated as silent/bypassed on the real-time path until
-        // Story 4.4.2 wires the actual cross-process audio streaming.
-        if (slot->bypassed.load() || slot->isolated)
+        if (slot->bypassed.load())
             continue;
+
+        if (slot->isolated) {
+            // Story 4.4.2 — never touches the IPC connection directly (see
+            // IsolatedPluginHost): pushInputBlock/popOutputBlock only read/
+            // write small preallocated lock-free queues, never block, never
+            // allocate. If nothing is ready yet (just added, or the worker
+            // has crashed/fallen behind), popOutputBlock leaves `view`
+            // untouched — the dry signal keeps passing through rather than
+            // cutting to silence.
+            if (slot->isolatedHost != nullptr) {
+                slot->isolatedHost->pushInputBlock(view);
+                slot->isolatedHost->popOutputBlock(view);
+            }
+            continue;
+        }
+
         slot->instance->processBlock(view, scratchMidiBuffer);
         scratchMidiBuffer.clear(); // a plugin may emit MIDI even without receiving any
     }
@@ -158,6 +179,14 @@ void PluginChain::addIsolatedPlugin(const juce::PluginDescription& description) 
             auto resolvedSlot = std::exchange(pendingIsolatedSlot, nullptr);
 
             if (success) {
+                // Story 4.4.2 — self-prepares using the chain's current
+                // sample rate/block size, same reasoning as
+                // addInProcessPlugin's instance->prepareToPlay() call right
+                // below: a plugin can be added while already playing, well
+                // after PluginChain::prepare() last ran, so it can't wait for
+                // the next one.
+                resolvedSlot->isolatedHost->prepareAudio(2, currentBlockSize);
+
                 std::lock_guard<std::mutex> lock(controlMutex);
                 const auto current = activeChain.load();
                 auto next = std::make_shared<ChainSnapshot>(*current);

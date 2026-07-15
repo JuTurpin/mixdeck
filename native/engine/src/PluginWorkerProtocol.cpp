@@ -53,4 +53,32 @@ juce::String readErrorMessage(const juce::MemoryBlock& message) {
     return in.readString();
 }
 
+juce::MemoryBlock makeAudioBlockMessage(const juce::AudioBuffer<float>& buffer) {
+    juce::MemoryBlock block;
+    juce::MemoryOutputStream out(block, false);
+    out.writeByte(static_cast<char>(WorkerMessageType::audioBlock));
+    out.writeInt(buffer.getNumChannels());
+    out.writeInt(buffer.getNumSamples());
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+        out.write(buffer.getReadPointer(channel), (size_t) buffer.getNumSamples() * sizeof(float));
+    return block;
+}
+
+bool readAudioBlockMessage(const juce::MemoryBlock& message, juce::AudioBuffer<float>& outBuffer) {
+    juce::MemoryInputStream in(message, false);
+    in.readByte(); // type
+
+    const auto numChannels = in.readInt();
+    const auto numSamples = in.readInt();
+    if (numChannels != outBuffer.getNumChannels() || numSamples != outBuffer.getNumSamples())
+        return false; // both sides agreed on this shape when the plugin was loaded — anything else is malformed
+
+    for (int channel = 0; channel < numChannels; ++channel) {
+        const auto bytesRead = in.read(outBuffer.getWritePointer(channel), (size_t) numSamples * sizeof(float));
+        if (bytesRead != (size_t) numSamples * sizeof(float))
+            return false;
+    }
+    return true;
+}
+
 } // namespace mixdeck

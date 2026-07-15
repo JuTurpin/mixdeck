@@ -63,7 +63,7 @@ Pas de `package.json`/workspace racine : `native/engine/` et `apps/electron-ui/`
 | Controller (ADR-014) | TypeScript, côté `apps/electron-ui` | Logique métier (orchestration des commandes, machine d'état Deck) — seule couche autorisée à contenir de la logique métier côté JS |
 | Pont | node-addon-api (N-API) | Traduction pure JS ↔ C++ : transmet les paramètres de contrôle en continu sans bloquer le thread audio, aucune logique métier (ADR-014) |
 | Moteur audio | C++ / JUCE | Lecture, pitch/time-stretch, filtre, mixage, plugin host — thread temps réel dédié |
-| Hébergement plugins | JUCE AudioPluginFormatManager | Charge et exécute les plugins VST3/AU choisis, idéalement isolés hors-process |
+| Hébergement plugins | JUCE AudioPluginFormatManager | Charge et exécute les plugins VST3/AU choisis ; VST3 isolé hors-process (`MixDeckPluginWorker`), AU en process principal |
 | Bibliothèque | SQLite (better-sqlite3) | Métadonnées, tags, crates, cue points |
 
 Flux de commande : `React → Controller → Bridge → JUCE`. Flux d'événements (retour moteur → UI) : `JUCE → Bridge → EventBus/Store → React` (voir "Modèle événementiel" ci-dessous). Voir `decision.md` ADR-014/ADR-015.
@@ -87,7 +87,7 @@ Filtre résonant multimode par deck (passe-bas/passe-haut), knob unique centré 
 - **Sélection manuelle du chemin** d'un plugin (bouton "Parcourir" ou glisser-déposer), en plus du scan automatique — pour les plugins hors dossiers standards.
 - Chaîne d'effets par deck (et bus master), ajout/retrait/réordonnancement.
 - Formats supportés en V1 : **VST3 et Audio Unit uniquement** (voir `decision.md` ADR-003 pour l'arbitrage VST2/FST).
-- Hébergement hors-process recommandé pour la stabilité (au moins sur Windows ; sur macOS l'AU tourne généralement dans le process principal).
+- Hébergement hors-process pour la stabilité (ADR-005) : implémenté pour VST3 (process dédié `MixDeckPluginWorker` par instance, streaming audio via files lock-free + thread de pompe, voir Story 4.4.1/4.4.2) ; l'AU tourne dans le process principal (contraintes AppKit).
 
 ### 4.6 Bibliothèque de sons
 SQLite local, scan/import de dossiers, tags, crates, cue points — cohérent avec les habitudes de l'app de bibliothèque existante (projet non réutilisé, mais logique similaire).
@@ -99,7 +99,7 @@ Défini avant tout code Bridge/UI de l'Epic 2, pour que React ne dépende jamais
 |---|---|---|
 | Deck | `loadFile()` (au lieu de `loadTrack()` — le renommage string↔File se fera au niveau du Bridge, Story 2.2), `unloadTrack()`, `play()`, `pause()`, `stop()`, `seek()`, `getState()` → `DeckState` (`EMPTY/LOADING/READY/PLAYING/PAUSED/STOPPED/ERROR`, ADR-016) | ✅ Implémenté (Story 2.1, `native/engine/src/Deck.h/.cpp`) |
 | Mixer | `setGain()` → `Mixer::setDeckVolume()`, `setCrossfader()` → `Mixer::setCrossfaderPosition()`/`setCrossfaderCurve()`, `setFilter()` → `Deck::setFilterKnob()` | ✅ Déjà couvert par le code Epic 1 (`native/engine/src/Mixer.h`, `Deck.h`) |
-| Plugins | `addPlugin()`, `removePlugin()`, `movePlugin()`, `setPluginBypassed()`, `showPluginEditor()`/`hidePluginEditor()` (édition via GUI native, ADR-011, pas `setPluginParameter()`) | ✅ Implémenté (Story 4.3, `native/engine/src/PluginChain.h/.cpp` + `MasterBus.h/.cpp`) — par deck et bus master |
+| Plugins | `addPlugin()`, `removePlugin()`, `movePlugin()`, `setPluginBypassed()`, `showPluginEditor()`/`hidePluginEditor()` (édition via GUI native, ADR-011, pas `setPluginParameter()`) | ✅ Implémenté (Story 4.3, `native/engine/src/PluginChain.h/.cpp` + `MasterBus.h/.cpp`) — par deck et bus master. Isolation hors-process VST3 (ADR-005) implémentée en 4.4.1/4.4.2 (`IsolatedPluginHost`/`MixDeckPluginWorker`), transparente pour ce contrat — mêmes méthodes, qu'un slot soit isolé ou non. |
 | Monitoring | `getPosition()` → `Deck::getPositionSeconds()` (déjà là) ; `getPeakMeter()`, `getWaveform()` | ⬜ Différé à une story ultérieure de l'Epic 2 (2.5/2.6) — nécessite du nouveau DSP (mesure de niveau, calcul de waveform), pas juste une exposition de méthode existante |
 
 `pause()` diffère de `stop()` : `pause()` fige la position courante, `stop()` revient à 0 (comportement conservé depuis l'Epic 1). `getState()` détecte aussi la fin de piste naturelle (transition automatique vers `Stopped`), en attendant la remontée d'événement complète de la Story 2.6 (ADR-015).
