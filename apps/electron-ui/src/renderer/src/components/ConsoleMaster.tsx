@@ -3,34 +3,35 @@
 // bus master/booth dans le moteur aujourd'hui.
 import { useMemo, useState, type DragEvent } from 'react'
 import Crossfader from './Crossfader'
+import PluginChainPanel from './PluginChainPanel'
 import type { MixerController } from '../controllers/MixerController'
 import { PluginController } from '../controllers/PluginController'
+import { MasterBusController } from '../controllers/MasterBusController'
 import type { AvailablePlugin } from '../../../preload'
 
 interface ConsoleMasterProps {
   mixer: MixerController
+  // Story 4.3 — remonte la liste découverte (scan/glisser-déposer) au parent
+  // commun (App.tsx), pour que les PluginChainPanel des deux Deck puissent
+  // aussi y piocher (même liste qu'ici, voir App.tsx).
+  onAvailablePluginsChange: (plugins: AvailablePlugin[]) => void
 }
 
-export default function ConsoleMaster({ mixer }: ConsoleMasterProps) {
-  // Story 4.0 — bouton temporaire pour valider le spike d'incrustation JUCE
-  // dans la fenêtre Electron. À retirer/remplacer par la vraie chaîne
-  // d'effets en 4.3.
-  const [pluginSpikeVisible, setPluginSpikeVisible] = useState(false)
-
-  const togglePluginSpike = (): void => {
-    if (pluginSpikeVisible) window.mixdeck.hidePluginWindowSpike()
-    else window.mixdeck.showPluginWindowSpike()
-    setPluginSpikeVisible((v) => !v)
-  }
-
-  // Story 4.1 — bouton temporaire pour valider la découverte de plugins
-  // (scan VST3/AU). À retirer/remplacer par un vrai navigateur de plugins
-  // en 4.2/4.3.
+export default function ConsoleMaster({ mixer, onAvailablePluginsChange }: ConsoleMasterProps) {
+  // Story 4.1 — découverte des plugins (scan VST3/AU) + Story 4.2 (ADR-004,
+  // sélection manuelle/glisser-déposer). Story 4.3 — la chaîne d'effets
+  // elle-même (bus master) est déléguée à PluginChainPanel plus bas.
   const pluginController = useMemo(() => new PluginController(), [])
+  const masterBusController = useMemo(() => new MasterBusController(), [])
   const [scanning, setScanning] = useState(false)
   const [foundPlugins, setFoundPlugins] = useState<AvailablePlugin[]>([])
   const [pluginError, setPluginError] = useState('')
   const [dragOver, setDragOver] = useState(false)
+
+  const setFoundPluginsAndNotify = (plugins: AvailablePlugin[]): void => {
+    setFoundPlugins(plugins)
+    onAvailablePluginsChange(plugins)
+  }
 
   const handleScanClick = async (): Promise<void> => {
     setScanning(true)
@@ -39,7 +40,7 @@ export default function ConsoleMaster({ mixer }: ConsoleMasterProps) {
     const poll = setInterval(async () => {
       if (await pluginController.isScanInProgress()) return
       clearInterval(poll)
-      setFoundPlugins(await pluginController.getAvailablePlugins())
+      setFoundPluginsAndNotify(await pluginController.getAvailablePlugins())
       setScanning(false)
     }, 500)
   }
@@ -50,7 +51,7 @@ export default function ConsoleMaster({ mixer }: ConsoleMasterProps) {
   const handleAddResult = async (error: string | null): Promise<void> => {
     if (error === null) return // annulé par l'utilisateur (dialogue fermé)
     setPluginError(error)
-    if (error === '') setFoundPlugins(await pluginController.getAvailablePlugins())
+    if (error === '') setFoundPluginsAndNotify(await pluginController.getAvailablePlugins())
   }
 
   const handleBrowseClick = async (): Promise<void> => {
@@ -87,9 +88,6 @@ export default function ConsoleMaster({ mixer }: ConsoleMasterProps) {
       }}
     >
       <Crossfader mixer={mixer} />
-      <button onClick={togglePluginSpike} style={{ fontSize: 11 }}>
-        {pluginSpikeVisible ? 'Masquer spike (4.0)' : 'Tester spike plugin (4.0)'}
-      </button>
       <button onClick={handleScanClick} disabled={scanning} style={{ fontSize: 11 }}>
         {scanning ? 'Scan en cours...' : 'Scanner les plugins (4.1)'}
       </button>
@@ -122,6 +120,12 @@ export default function ConsoleMaster({ mixer }: ConsoleMasterProps) {
               </div>
             ))}
       </div>
+
+      <PluginChainPanel
+        controller={masterBusController}
+        availablePlugins={foundPlugins}
+        title="CHAÎNE D'EFFETS (MASTER)"
+      />
     </div>
   )
 }

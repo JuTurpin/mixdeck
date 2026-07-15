@@ -43,6 +43,34 @@ MainComponent::MainComponent() {
         deckB.setPitch(pitchB);
         deckPanelB.setPitchDisplay(pitchB);
     };
+    // Story 4.3 — validation minimale : ajoute le premier plugin connu
+    // (scanné ou ajouté manuellement, 4.1/4.2) à ce deck, et bascule
+    // l'affichage de son éditeur réel (fenêtre native indépendante ici, pas
+    // d'incrustation Electron dans ce harnais — voir PluginChain::showPluginEditor).
+    deckPanelA.onAddFirstPluginRequested = [this] {
+        const auto identifier = getFirstAvailablePluginIdentifier();
+        if (identifier.isNotEmpty())
+            deckA.addPlugin(identifier);
+    };
+    deckPanelA.onTogglePluginEditorRequested = [this] {
+        deckAEditorVisible = !deckAEditorVisible;
+        if (deckAEditorVisible)
+            deckA.showPluginEditor(0, nullptr);
+        else
+            deckA.hidePluginEditor(0);
+    };
+    deckPanelB.onAddFirstPluginRequested = [this] {
+        const auto identifier = getFirstAvailablePluginIdentifier();
+        if (identifier.isNotEmpty())
+            deckB.addPlugin(identifier);
+    };
+    deckPanelB.onTogglePluginEditorRequested = [this] {
+        deckBEditorVisible = !deckBEditorVisible;
+        if (deckBEditorVisible)
+            deckB.showPluginEditor(0, nullptr);
+        else
+            deckB.hidePluginEditor(0);
+    };
     addAndMakeVisible(deckPanelA);
     addAndMakeVisible(deckPanelB);
 
@@ -96,7 +124,23 @@ MainComponent::MainComponent() {
         });
     };
 
-    setSize(700, 590);
+    // Story 4.3 — même validation minimale que les decks, pour le bus master.
+    addAndMakeVisible(masterAddPluginButton);
+    masterAddPluginButton.onClick = [this] {
+        const auto identifier = getFirstAvailablePluginIdentifier();
+        if (identifier.isNotEmpty())
+            masterBus.getPluginChain().addPlugin(identifier);
+    };
+    addAndMakeVisible(masterPluginEditorButton);
+    masterPluginEditorButton.onClick = [this] {
+        masterEditorVisible = !masterEditorVisible;
+        if (masterEditorVisible)
+            masterBus.getPluginChain().showPluginEditor(0, nullptr);
+        else
+            masterBus.getPluginChain().hidePluginEditor(0);
+    };
+
+    setSize(700, 640);
     setAudioChannels(0, 2); // no input, stereo output
 }
 
@@ -106,20 +150,25 @@ MainComponent::~MainComponent() {
 }
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
-    audioMixer.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    masterBus.prepareToPlay(samplesPerBlockExpected, sampleRate); // Story 4.3 — cascades into audioMixer itself
 }
 
 void MainComponent::releaseResources() {
-    audioMixer.releaseResources();
+    masterBus.releaseResources();
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
-    audioMixer.getNextAudioBlock(bufferToFill);
+    masterBus.getNextAudioBlock(bufferToFill);
 }
 
 float MainComponent::computeSyncPitch(float ownBpm, float otherEffectiveBpm) {
     const auto raw = (otherEffectiveBpm / ownBpm - 1.0f) * 100.0f;
     return juce::jlimit(-50.0f, 50.0f, raw);
+}
+
+juce::String MainComponent::getFirstAvailablePluginIdentifier() const {
+    const auto plugins = pluginHost.getAvailablePlugins();
+    return plugins.empty() ? juce::String() : plugins.front().createIdentifierString();
 }
 
 void MainComponent::updatePluginResultsDisplay() {
@@ -176,6 +225,10 @@ void MainComponent::resized() {
     pluginScanButton.setBounds(middleArea.removeFromTop(28));
     middleArea.removeFromTop(8);
     pluginBrowseButton.setBounds(middleArea.removeFromTop(28));
+    middleArea.removeFromTop(8);
+    masterAddPluginButton.setBounds(middleArea.removeFromTop(28));
+    middleArea.removeFromTop(8);
+    masterPluginEditorButton.setBounds(middleArea.removeFromTop(28));
     middleArea.removeFromTop(8);
     pluginResultsEditor.setBounds(middleArea);
 }

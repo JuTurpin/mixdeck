@@ -99,7 +99,7 @@ Défini avant tout code Bridge/UI de l'Epic 2, pour que React ne dépende jamais
 |---|---|---|
 | Deck | `loadFile()` (au lieu de `loadTrack()` — le renommage string↔File se fera au niveau du Bridge, Story 2.2), `unloadTrack()`, `play()`, `pause()`, `stop()`, `seek()`, `getState()` → `DeckState` (`EMPTY/LOADING/READY/PLAYING/PAUSED/STOPPED/ERROR`, ADR-016) | ✅ Implémenté (Story 2.1, `native/engine/src/Deck.h/.cpp`) |
 | Mixer | `setGain()` → `Mixer::setDeckVolume()`, `setCrossfader()` → `Mixer::setCrossfaderPosition()`/`setCrossfaderCurve()`, `setFilter()` → `Deck::setFilterKnob()` | ✅ Déjà couvert par le code Epic 1 (`native/engine/src/Mixer.h`, `Deck.h`) |
-| Plugins | `addPlugin()`, `removePlugin()`, `movePlugin()`, `setPluginParameter()` | ⬜ Epic 4 (aucun code plugin n'existe encore) |
+| Plugins | `addPlugin()`, `removePlugin()`, `movePlugin()`, `setPluginBypassed()`, `showPluginEditor()`/`hidePluginEditor()` (édition via GUI native, ADR-011, pas `setPluginParameter()`) | ✅ Implémenté (Story 4.3, `native/engine/src/PluginChain.h/.cpp` + `MasterBus.h/.cpp`) — par deck et bus master |
 | Monitoring | `getPosition()` → `Deck::getPositionSeconds()` (déjà là) ; `getPeakMeter()`, `getWaveform()` | ⬜ Différé à une story ultérieure de l'Epic 2 (2.5/2.6) — nécessite du nouveau DSP (mesure de niveau, calcul de waveform), pas juste une exposition de méthode existante |
 
 `pause()` diffère de `stop()` : `pause()` fige la position courante, `stop()` revient à 0 (comportement conservé depuis l'Epic 1). `getState()` détecte aussi la fin de piste naturelle (transition automatique vers `Stopped`), en attendant la remontée d'événement complète de la Story 2.6 (ADR-015).

@@ -85,6 +85,18 @@ DeckPanel::DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& de
             onSyncRequested();
     };
 
+    // Story 4.3 — validation minimale (voir Electron pour la vraie UI de chaîne).
+    addAndMakeVisible(addPluginButton);
+    addPluginButton.onClick = [this] {
+        if (onAddFirstPluginRequested)
+            onAddFirstPluginRequested();
+    };
+    addAndMakeVisible(pluginEditorButton);
+    pluginEditorButton.onClick = [this] {
+        if (onTogglePluginEditorRequested)
+            onTogglePluginEditorRequested();
+    };
+
     trackLabel.setText("Aucune piste chargee", juce::dontSendNotification);
     trackLabel.setJustificationType(juce::Justification::centred);
     positionLabel.setText("00:00 / 00:00", juce::dontSendNotification);
@@ -147,6 +159,10 @@ void DeckPanel::resized() {
     pitchModeButton.setBounds(area.removeFromTop(22));
     area.removeFromTop(4);
     syncButton.setBounds(area.removeFromTop(22));
+    area.removeFromTop(4);
+    addPluginButton.setBounds(area.removeFromTop(22));
+    area.removeFromTop(4);
+    pluginEditorButton.setBounds(area.removeFromTop(22));
     area.removeFromTop(8);
 
     auto filterArea = area.removeFromRight(70);
@@ -186,6 +202,8 @@ void DeckPanel::updateTransportButtons() {
     stopButton.setEnabled(hasTrack);
     unloadButton.setEnabled(hasTrack);
     syncButton.setEnabled(hasTrack);
+    addPluginButton.setEnabled(hasTrack);
+    pluginEditorButton.setEnabled(hasTrack);
 }
 
 void DeckPanel::setPitchDisplay(float percent) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Deck.h"
+#include "MasterBus.h"
 #include "Mixer.h"
 #include "PluginHost.h"
 #include <atomic>
@@ -29,20 +30,29 @@ public:
     // Story 4.2 (ADR-004) — manual path selection, VST3 only (see PluginHost).
     juce::String addPluginFromPath(const juce::String& path) { return pluginHost.addPluginFromPath(path); }
 
+    // Story 4.3 — bus master effects chain (after deckA/deckB are mixed).
+    MasterBus& getMasterBus() { return masterBus; }
+
 private:
     juce::AudioDeviceManager deviceManager;
     juce::AudioFormatManager formatManager;
-    // Story 3.2 — shared by both decks: at most 2 BPM analyses run at once,
-    // one per deck. Declared before deckA/deckB so it's constructed first
-    // (member init order follows declaration order, not the list below).
+    // Story 3.2 — shared by both decks (and plugin instantiation, Story 4.3):
+    // at most 2 BPM analyses / plugin loads run at once. Declared before
+    // deckA/deckB/pluginHost's dependents so it's constructed first (member
+    // init order follows declaration order, not the list below).
     juce::ThreadPool analysisPool { 2 };
-    Deck deckA { formatManager, analysisPool };
-    Deck deckB { formatManager, analysisPool };
+    // Story 4.1 — discovery/instantiation shared by both decks and the
+    // master bus. Declared before deckA/deckB: they need it at construction.
+    PluginHost pluginHost;
+    Deck deckA { formatManager, analysisPool, pluginHost };
+    Deck deckB { formatManager, analysisPool, pluginHost };
     juce::MixerAudioSource audioMixer;
     Mixer mixer { deckA, deckB };
+    // Story 4.3 — wraps audioMixer with its own effects chain; audioSourcePlayer
+    // pulls from this instead of audioMixer directly (see Engine.cpp).
+    MasterBus masterBus { audioMixer, pluginHost, analysisPool };
     juce::AudioSourcePlayer audioSourcePlayer;
 
-    PluginHost pluginHost;
     std::atomic<bool> pluginScanInProgress { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Engine)

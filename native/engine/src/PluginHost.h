@@ -31,6 +31,18 @@ public:
     // scan-only, Story 4.1). Returns an error message, "" on success.
     juce::String addPluginFromPath(const juce::String& path);
 
+    // Story 4.3 — instantiates a real plugin instance from a plugin found by
+    // scanForPlugins()/addPluginFromPath() (looked up by
+    // PluginDescription::createIdentifierString()), ready to process audio at
+    // the given sample rate/block size. Blocking (see AudioPluginFormatManager
+    // ::createPluginInstance) — safe off the message thread for VST3 and
+    // classic AU (AUv2); callers run this on a background thread (PluginChain
+    // uses the shared analysisPool) rather than the IPC/message thread.
+    // Rejects plugins that don't support a plain stereo in/out layout (e.g.
+    // instruments with no audio input) — returns nullptr + error in that case.
+    std::unique_ptr<juce::AudioPluginInstance> instantiatePlugin(
+        const juce::String& pluginIdentifier, double sampleRate, int blockSize, juce::String& error);
+
 private:
     juce::AudioPluginFormatManager formatManager;
     mutable std::mutex mutex;

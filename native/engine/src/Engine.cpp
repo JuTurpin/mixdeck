@@ -8,7 +8,7 @@ Engine::Engine() {
     audioMixer.addInputSource(&deckA, false);
     audioMixer.addInputSource(&deckB, false);
 
-    audioSourcePlayer.setSource(&audioMixer);
+    audioSourcePlayer.setSource(&masterBus); // Story 4.3 — routes through the master effects chain
     deviceManager.initialiseWithDefaultDevices(0, 2);
     deviceManager.addAudioCallback(&audioSourcePlayer);
 }

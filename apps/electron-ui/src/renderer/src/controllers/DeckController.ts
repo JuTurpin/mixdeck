@@ -1,3 +1,5 @@
+import type { PluginChainSlot } from '../../../preload'
+
 // Controller (ADR-014) : logique métier entre React et le Bridge (relai IPC
 // exposé par src/preload/index.ts). Un DeckController par deck (A = 0, B = 1).
 export class DeckController {
@@ -75,5 +77,44 @@ export class DeckController {
   computeSyncPitch(ownBpm: number, otherEffectiveBpm: number): number {
     const raw = (otherEffectiveBpm / ownBpm - 1) * 100
     return Math.max(-50, Math.min(50, raw))
+  }
+
+  // Story 4.3 — chaîne d'effets de ce deck. addPlugin est asynchrone
+  // (instanciation potentiellement lente, voir isAddingPlugin/getLastAddError,
+  // même convention que PluginController.scan()) ; le reste est synchrone.
+  addPlugin(identifier: string): Promise<void> {
+    return window.mixdeck.deckAddPlugin(this.deckIndex, identifier)
+  }
+
+  isAddingPlugin(): Promise<boolean> {
+    return window.mixdeck.deckIsAddingPlugin(this.deckIndex)
+  }
+
+  getLastPluginAddError(): Promise<string> {
+    return window.mixdeck.deckGetLastPluginAddError(this.deckIndex)
+  }
+
+  removePlugin(index: number): Promise<void> {
+    return window.mixdeck.deckRemovePlugin(this.deckIndex, index)
+  }
+
+  movePlugin(fromIndex: number, toIndex: number): Promise<void> {
+    return window.mixdeck.deckMovePlugin(this.deckIndex, fromIndex, toIndex)
+  }
+
+  setPluginBypassed(index: number, bypassed: boolean): Promise<void> {
+    return window.mixdeck.deckSetPluginBypassed(this.deckIndex, index, bypassed)
+  }
+
+  showPluginEditor(index: number): Promise<void> {
+    return window.mixdeck.deckShowPluginEditor(this.deckIndex, index)
+  }
+
+  hidePluginEditor(index: number): Promise<void> {
+    return window.mixdeck.deckHidePluginEditor(this.deckIndex, index)
+  }
+
+  getPluginChain(): Promise<PluginChainSlot[]> {
+    return window.mixdeck.deckGetPluginChain(this.deckIndex)
   }
 }

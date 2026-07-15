@@ -28,8 +28,9 @@ add_library(engine-core STATIC
     src/Engine.cpp
     src/TimeStretch.cpp
     src/BpmAnalyzer.cpp
-    src/PluginWindowSpike.cpp
     src/PluginHost.cpp
+    src/PluginChain.cpp
+    src/MasterBus.cpp
 )
 
 target_include_directories(engine-core PUBLIC src)

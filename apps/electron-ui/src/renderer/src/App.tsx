@@ -6,6 +6,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { TitleBar, Deck, ConsoleMaster, type DeckSyncInfo } from './components'
 import { MixerController } from './controllers'
+import type { AvailablePlugin } from '../../preload'
 
 const emptySyncInfo: DeckSyncInfo = { bpm: 0, pitch: 0 }
 
@@ -22,6 +23,11 @@ export default function App() {
     emptySyncInfo,
     emptySyncInfo
   ])
+  // Story 4.3 — la découverte de plugins (scan/glisser-déposer) reste dans
+  // ConsoleMaster (4.1/4.2) ; la liste trouvée est remontée ici pour que les
+  // deux chaînes d'effets par deck puissent aussi y piocher (même liste,
+  // partagée par tous les emplacements de la chaîne, deck ou bus master).
+  const [availablePlugins, setAvailablePlugins] = useState<AvailablePlugin[]>([])
 
   // Références stables (jamais recréées) pour ne redéclencher l'effet de
   // remontée de Deck.tsx que lorsque bpm/pitch changent réellement.
@@ -52,8 +58,9 @@ export default function App() {
           mixer={mixer}
           otherDeck={syncInfo[1]}
           onSyncInfoChange={handleSyncInfoChangeA}
+          availablePlugins={availablePlugins}
         />
-        <ConsoleMaster mixer={mixer} />
+        <ConsoleMaster mixer={mixer} onAvailablePluginsChange={setAvailablePlugins} />
         <Deck
           label="DECK B"
           accent="#f0955a"
@@ -61,6 +68,7 @@ export default function App() {
           mixer={mixer}
           otherDeck={syncInfo[0]}
           onSyncInfoChange={handleSyncInfoChangeB}
+          availablePlugins={availablePlugins}
         />
       </div>
     </div>

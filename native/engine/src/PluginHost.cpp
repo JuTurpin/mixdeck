@@ -81,4 +81,34 @@ juce::String PluginHost::addPluginFromPath(const juce::String& path) {
     return "Format de plugin non reconnu : " + juce::File(path).getFileName();
 }
 
+std::unique_ptr<juce::AudioPluginInstance> PluginHost::instantiatePlugin(
+    const juce::String& pluginIdentifier, double sampleRate, int blockSize, juce::String& error) {
+    juce::PluginDescription description;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        const auto found = std::find_if(availablePlugins.begin(), availablePlugins.end(), [&](const auto& d) {
+            return d.createIdentifierString() == pluginIdentifier;
+        });
+        if (found == availablePlugins.end()) {
+            error = "Plugin inconnu : " + pluginIdentifier;
+            return nullptr;
+        }
+        description = *found;
+    }
+
+    auto instance = formatManager.createPluginInstance(description, sampleRate, blockSize, error);
+    if (instance == nullptr)
+        return nullptr;
+
+    juce::AudioProcessor::BusesLayout stereoInOut;
+    stereoInOut.inputBuses.add(juce::AudioChannelSet::stereo());
+    stereoInOut.outputBuses.add(juce::AudioChannelSet::stereo());
+    if (!instance->checkBusesLayoutSupported(stereoInOut) || !instance->setBusesLayout(stereoInOut)) {
+        error = "Ce plugin ne supporte pas un bus stereo standard (entree + sortie).";
+        return nullptr;
+    }
+
+    return instance;
+}
+
 } // namespace mixdeck

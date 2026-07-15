@@ -2,11 +2,19 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
 
 // Story 4.1 — sous-ensemble de juce::PluginDescription utile côté JS.
+// identifierString (4.3) est l'identifiant stable à repasser à addPlugin.
 export interface AvailablePlugin {
   name: string
   manufacturerName: string
   pluginFormatName: string
   fileOrIdentifier: string
+  identifierString: string
+}
+
+// Story 4.3 — un slot de la chaîne d'effets (deck ou bus master).
+export interface PluginChainSlot {
+  name: string
+  bypassed: boolean
 }
 
 // Story 2.4 — relai pur vers le process principal (voir src/main/index.ts) :
@@ -45,13 +53,7 @@ const mixdeck = {
     ipcRenderer.invoke('mixdeck:mixerSetCrossfaderPosition', position),
   mixerSetCrossfaderCurve: (curve: string): Promise<void> =>
     ipcRenderer.invoke('mixdeck:mixerSetCrossfaderCurve', curve),
-  // Story 4.0 — spike : incrustation d'une vue de test JUCE dans la fenêtre
-  // Electron (voir NodeBinding.cpp::PluginWindowSpike). À retirer/remplacer
-  // par la vraie chaîne d'effets en 4.3.
-  showPluginWindowSpike: (): Promise<void> => ipcRenderer.invoke('mixdeck:showPluginWindowSpike'),
-  hidePluginWindowSpike: (): Promise<void> => ipcRenderer.invoke('mixdeck:hidePluginWindowSpike'),
   // Story 4.1 — découverte des plugins VST3/AU (dossiers standards, ADR-003).
-  // Pas de chargement dans une chaîne d'effets encore (Story 4.3).
   startPluginScan: (): Promise<void> => ipcRenderer.invoke('mixdeck:startPluginScan'),
   isPluginScanInProgress: (): Promise<boolean> => ipcRenderer.invoke('mixdeck:isPluginScanInProgress'),
   getAvailablePlugins: (): Promise<AvailablePlugin[]> =>
@@ -62,6 +64,45 @@ const mixdeck = {
   pickPluginFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickPluginFile'),
   addPluginFromPath: (path: string): Promise<string> =>
     ipcRenderer.invoke('mixdeck:addPluginFromPath', path),
+  // Story 4.3 — chaîne d'effets par deck : instanciation réelle (asynchrone,
+  // voir isAddingPlugin/getLastPluginAddError), mutations synchrones
+  // (remove/move/bypass), et ouverture de l'éditeur réel du plugin, incrusté
+  // dans cette fenêtre (voir setHostWindowHandle côté main).
+  deckAddPlugin: (deckIndex: number, identifier: string): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckAddPlugin', deckIndex, identifier),
+  deckIsAddingPlugin: (deckIndex: number): Promise<boolean> =>
+    ipcRenderer.invoke('mixdeck:deckIsAddingPlugin', deckIndex),
+  deckGetLastPluginAddError: (deckIndex: number): Promise<string> =>
+    ipcRenderer.invoke('mixdeck:deckGetLastPluginAddError', deckIndex),
+  deckRemovePlugin: (deckIndex: number, index: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckRemovePlugin', deckIndex, index),
+  deckMovePlugin: (deckIndex: number, fromIndex: number, toIndex: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckMovePlugin', deckIndex, fromIndex, toIndex),
+  deckSetPluginBypassed: (deckIndex: number, index: number, bypassed: boolean): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckSetPluginBypassed', deckIndex, index, bypassed),
+  deckShowPluginEditor: (deckIndex: number, index: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckShowPluginEditor', deckIndex, index),
+  deckHidePluginEditor: (deckIndex: number, index: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:deckHidePluginEditor', deckIndex, index),
+  deckGetPluginChain: (deckIndex: number): Promise<PluginChainSlot[]> =>
+    ipcRenderer.invoke('mixdeck:deckGetPluginChain', deckIndex),
+  // Story 4.3 — chaîne d'effets du bus master (même forme, sans index de deck).
+  masterAddPlugin: (identifier: string): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:masterAddPlugin', identifier),
+  masterIsAddingPlugin: (): Promise<boolean> => ipcRenderer.invoke('mixdeck:masterIsAddingPlugin'),
+  masterGetLastPluginAddError: (): Promise<string> =>
+    ipcRenderer.invoke('mixdeck:masterGetLastPluginAddError'),
+  masterRemovePlugin: (index: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:masterRemovePlugin', index),
+  masterMovePlugin: (fromIndex: number, toIndex: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:masterMovePlugin', fromIndex, toIndex),
+  masterSetPluginBypassed: (index: number, bypassed: boolean): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:masterSetPluginBypassed', index, bypassed),
+  masterShowPluginEditor: (index: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:masterShowPluginEditor', index),
+  masterHidePluginEditor: (index: number): Promise<void> =>
+    ipcRenderer.invoke('mixdeck:masterHidePluginEditor', index),
+  masterGetPluginChain: (): Promise<PluginChainSlot[]> => ipcRenderer.invoke('mixdeck:masterGetPluginChain'),
   // Glisser-déposer : sous contextIsolation, un File du DOM n'expose plus son
   // chemin réel directement — webUtils.getPathForFile() est le remplacement
   // sûr exposé aux scripts preload.

@@ -69,7 +69,17 @@ function registerBridgeHandlers(nativeEngine: any): void {
     'deckGetBpm',
     'deckSetFilter',
     'deckSetPitch',
-    'deckSetPitchMode'
+    'deckSetPitchMode',
+    // Story 4.3 — chaîne d'effets par deck (deckIndex est toujours le 1er arg).
+    'deckAddPlugin',
+    'deckIsAddingPlugin',
+    'deckGetLastPluginAddError',
+    'deckRemovePlugin',
+    'deckMovePlugin',
+    'deckSetPluginBypassed',
+    'deckShowPluginEditor',
+    'deckHidePluginEditor',
+    'deckGetPluginChain'
   ] as const
 
   const mixerMethods = [
@@ -78,13 +88,20 @@ function registerBridgeHandlers(nativeEngine: any): void {
     'mixerSetCrossfaderCurve'
   ] as const
 
-  // Story 4.0 — spike prouvant qu'une vue native JUCE peut s'incruster dans
-  // la fenêtre Electron (voir setHostWindowHandle plus bas). Pas de
-  // rattachement par deck ici : c'est de l'infrastructure, pas du moteur audio.
-  const pluginSpikeMethods = ['showPluginWindowSpike', 'hidePluginWindowSpike'] as const
+  // Story 4.3 — chaîne d'effets du bus master (même forme que deckXxx, sans index).
+  const masterMethods = [
+    'masterAddPlugin',
+    'masterIsAddingPlugin',
+    'masterGetLastPluginAddError',
+    'masterRemovePlugin',
+    'masterMovePlugin',
+    'masterSetPluginBypassed',
+    'masterShowPluginEditor',
+    'masterHidePluginEditor',
+    'masterGetPluginChain'
+  ] as const
 
   // Story 4.1 — découverte de plugins (scan des dossiers standards VST3/AU).
-  // Pas de chargement dans une chaîne d'effets encore (Story 4.3).
   const pluginScanMethods = [
     'startPluginScan',
     'isPluginScanInProgress',
@@ -92,7 +109,7 @@ function registerBridgeHandlers(nativeEngine: any): void {
     'addPluginFromPath' // Story 4.2 (ADR-004) — sélection manuelle, VST3 uniquement
   ] as const
 
-  for (const method of [...deckMethods, ...mixerMethods, ...pluginSpikeMethods, ...pluginScanMethods]) {
+  for (const method of [...deckMethods, ...mixerMethods, ...masterMethods, ...pluginScanMethods]) {
     ipcMain.handle(`mixdeck:${method}`, (_event, ...args) => nativeEngine[method](...args))
   }
 }
@@ -140,9 +157,10 @@ app.whenReady().then(() => {
   const mainWindow = createWindow()
 
   // Story 4.0 — donne au Bridge le handle natif (NSView* sur macOS) de la
-  // fenêtre Electron, pour que le spike d'incrustation JUCE puisse s'y
-  // rattacher (voir NodeBinding.cpp::SetHostWindowHandle). Direct, pas
-  // besoin d'IPC : le process principal a déjà accès aux deux objets ici.
+  // fenêtre Electron, pour que les éditeurs de plugin réels (Story 4.3)
+  // puissent s'y incruster (voir NodeBinding.cpp::SetHostWindowHandle et
+  // ::DeckShowPluginEditor/::MasterShowPluginEditor). Direct, pas besoin
+  // d'IPC : le process principal a déjà accès aux deux objets ici.
   if (nativeEngine) {
     nativeEngine.setHostWindowHandle(mainWindow.getNativeWindowHandle())
   }

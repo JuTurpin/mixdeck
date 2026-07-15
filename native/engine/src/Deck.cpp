@@ -28,8 +28,9 @@ juce::String toString(PitchMode mode) {
     return {};
 }
 
-Deck::Deck(juce::AudioFormatManager& formatManagerToUse, juce::ThreadPool& analysisPoolToUse)
-    : formatManager(formatManagerToUse), analysisPool(analysisPoolToUse) {
+Deck::Deck(juce::AudioFormatManager& formatManagerToUse, juce::ThreadPool& analysisPoolToUse,
+           PluginHost& pluginHostToUse)
+    : formatManager(formatManagerToUse), analysisPool(analysisPoolToUse), pluginChain(pluginHostToUse, analysisPoolToUse) {
     readAheadThread.startThread(juce::Thread::Priority::normal);
 }
 
@@ -104,6 +105,30 @@ std::vector<float> Deck::getBeatGrid() const {
     return beatGrid;
 }
 
+void Deck::addPlugin(const juce::String& pluginIdentifier) {
+    pluginChain.addPlugin(pluginIdentifier);
+}
+
+void Deck::removePlugin(int index) {
+    pluginChain.removePlugin(index);
+}
+
+void Deck::movePlugin(int fromIndex, int toIndex) {
+    pluginChain.movePlugin(fromIndex, toIndex);
+}
+
+void Deck::setPluginBypassed(int index, bool bypassed) {
+    pluginChain.setPluginBypassed(index, bypassed);
+}
+
+void Deck::showPluginEditor(int index, void* hostWindowHandle) {
+    pluginChain.showPluginEditor(index, hostWindowHandle);
+}
+
+void Deck::hidePluginEditor(int index) {
+    pluginChain.hidePluginEditor(index);
+}
+
 void Deck::play() {
     if (readerSource != nullptr) {
         transportSource.start();
@@ -176,12 +201,14 @@ void Deck::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
     pitchResampler.prepareToPlay(samplesPerBlockExpected, sampleRate);
     timeStretch.prepare(sampleRate, samplesPerBlockExpected);
     filter.prepare({ sampleRate, (juce::uint32) samplesPerBlockExpected, 2 });
+    pluginChain.prepare(sampleRate, samplesPerBlockExpected);
 }
 
 void Deck::releaseResources() {
     transportSource.releaseResources();
     pitchResampler.releaseResources();
     timeStretch.releaseResources();
+    pluginChain.releaseResources();
 }
 
 void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
@@ -198,6 +225,8 @@ void Deck::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
     auto block = juce::dsp::AudioBlock<float>(*bufferToFill.buffer)
                      .getSubBlock((size_t) bufferToFill.startSample, (size_t) bufferToFill.numSamples);
     filter.process(block);
+
+    pluginChain.process(bufferToFill); // Story 4.3 — effects chain, after the built-in filter
 }
 
 } // namespace mixdeck

@@ -6,6 +6,7 @@
 #include <atomic>
 #include <mutex>
 #include "FilterDSP.h"
+#include "PluginChain.h"
 #include "TimeStretch.h"
 
 namespace mixdeck {
@@ -35,9 +36,11 @@ juce::String toString(PitchMode mode);
     future UI never has to reconstruct status from ad hoc flags. */
 class Deck : public juce::AudioSource {
 public:
-    // analysisPoolToUse: shared background pool for BPM analysis (Story 3.2),
-    // owned by Engine/MainComponent — at most one job per Deck in flight.
-    Deck(juce::AudioFormatManager& formatManagerToUse, juce::ThreadPool& analysisPoolToUse);
+    // analysisPoolToUse: shared background pool for BPM analysis (Story 3.2)
+    // and plugin instantiation (Story 4.3), owned by Engine/MainComponent.
+    // pluginHostToUse: shared plugin discovery/instantiation (Story 4.1/4.3).
+    Deck(juce::AudioFormatManager& formatManagerToUse, juce::ThreadPool& analysisPoolToUse,
+         PluginHost& pluginHostToUse);
     ~Deck() override;
 
     // Returns an error message on failure, or an empty string on success.
@@ -79,6 +82,19 @@ public:
     // (no waveform to draw it on).
     std::vector<float> getBeatGrid() const;
 
+    // Story 4.3 — effects chain, inserted after the filter (see
+    // getNextAudioBlock). All delegate to pluginChain; see PluginChain.h for
+    // the real-time-safety reasoning (lock-free on the audio thread).
+    void addPlugin(const juce::String& pluginIdentifier);
+    bool isAddingPlugin() const { return pluginChain.isAddingPlugin(); }
+    juce::String getLastPluginAddError() const { return pluginChain.getLastAddError(); }
+    void removePlugin(int index);
+    void movePlugin(int fromIndex, int toIndex);
+    void setPluginBypassed(int index, bool bypassed);
+    void showPluginEditor(int index, void* hostWindowHandle);
+    void hidePluginEditor(int index);
+    std::vector<PluginChain::SlotInfo> getPluginChainSlots() const { return pluginChain.getSlots(); }
+
     // juce::AudioSource
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
     void releaseResources() override;
@@ -96,6 +112,7 @@ private:
     juce::String loadedFileName;
     FilterDSP filter;
     TimeStretch timeStretch;
+    PluginChain pluginChain;
     PitchMode pitchMode = PitchMode::LinkedSpeed; // default = unchanged Epic 1 behaviour
     mutable DeckState state = DeckState::Empty;
 

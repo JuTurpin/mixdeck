@@ -10,9 +10,10 @@ namespace mixdeck {
     position slider, a volume fader (1.2), a filter knob (1.3), a pitch slider
     (1.4), a pitch-mode toggle (3.1 — linked speed vs. independent
     time-stretch, ADR-006), a BPM label (3.2, updated once background
-    analysis completes) and a Sync button (3.3 — one-shot tempo match against
-    the other deck, computed by MainComponent). Test harness only — not the
-    final Electron/React UI (§6). */
+    analysis completes), a Sync button (3.3 — one-shot tempo match against
+    the other deck, computed by MainComponent) and minimal plugin-chain
+    validation buttons (4.3 — add the first known plugin, toggle its real
+    editor). Test harness only — not the final Electron/React UI (§6). */
 class DeckPanel : public juce::Component, private juce::Timer {
 public:
     DeckPanel(juce::String labelText, juce::Colour accentColour, Deck& deckToControl);
@@ -37,6 +38,13 @@ public:
     // Updates the pitch slider's displayed value without re-triggering onPitchChanged
     // (Story 3.3 — reflects a sync applied programmatically, not by dragging).
     void setPitchDisplay(float percent);
+
+    // Story 4.3 — minimal validation, not a real chain UI (see Electron for
+    // that): adds the first plugin PluginHost knows about, and opens/hides
+    // the first slot's real editor as its own top-level window (no Electron
+    // window to embed into here).
+    std::function<void()> onAddFirstPluginRequested;
+    std::function<void()> onTogglePluginEditorRequested;
 
 private:
     void loadFileClicked();
@@ -64,6 +72,8 @@ private:
     juce::Label pitchLabel;
     juce::TextButton pitchModeButton { "Vitesse liee" };
     juce::TextButton syncButton { "Sync" };
+    juce::TextButton addPluginButton { "+ Plugin" };
+    juce::TextButton pluginEditorButton { "Editeur plugin" };
 
     std::unique_ptr<juce::FileChooser> fileChooser;
 

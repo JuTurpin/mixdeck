@@ -1,13 +1,16 @@
 // Composant Deck partagé A/B, paramétré par accent/label (architecture.md
 // §6). BPM détecté à l'import (Story 3.2), sync automatique entre decks
-// (Story 3.3). Pas de clé, waveform, hot cues, EQ ni chaîne d'effets : ces
-// éléments n'ont aucun moteur derrière aujourd'hui (voir docs/decision.md,
-// discussion Story 2.5) et arriveront avec leurs stories respectives.
+// (Story 3.3), chaîne d'effets par deck (Story 4.3). Pas de clé, waveform,
+// hot cues ni EQ : ces éléments n'ont aucun moteur derrière aujourd'hui (voir
+// docs/decision.md, discussion Story 2.5) et arriveront avec leurs stories
+// respectives.
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { DeckController } from '../controllers/DeckController'
 import type { MixerController } from '../controllers/MixerController'
 import { useDeckState } from '../state'
 import FilterKnob from './FilterKnob'
+import PluginChainPanel from './PluginChainPanel'
+import type { AvailablePlugin } from '../../../preload'
 
 // Story 3.3 — bpm/pitch remontés au parent commun (App.tsx) : aucune des
 // deux valeurs n'est reconstruite ailleurs, c'est ce que ce composant sait
@@ -24,6 +27,9 @@ interface DeckProps {
   mixer: MixerController
   otherDeck: DeckSyncInfo
   onSyncInfoChange: (info: DeckSyncInfo) => void
+  // Story 4.3 — plugins découverts côté ConsoleMaster (scan/glisser-déposer,
+  // 4.1/4.2), partagés avec la chaîne d'effets de ce deck (voir App.tsx).
+  availablePlugins: AvailablePlugin[]
 }
 
 function formatSeconds(seconds: number): string {
@@ -38,7 +44,8 @@ export default function Deck({
   deckIndex,
   mixer,
   otherDeck,
-  onSyncInfoChange
+  onSyncInfoChange,
+  availablePlugins
 }: DeckProps) {
   const controller = useMemo(() => new DeckController(deckIndex), [deckIndex])
   const { state, position, length, bpm } = useDeckState(controller)
@@ -245,6 +252,8 @@ export default function Deck({
           label="FILTRE"
         />
       </div>
+
+      <PluginChainPanel controller={controller} availablePlugins={availablePlugins} />
     </div>
   )
 }
