@@ -293,6 +293,21 @@
         { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — types TypeScript uniquement" },
         { "name": "epic", "value": "Epic 5 — Story 5.1" }
       ]
+    },
+    {
+      "type": "library",
+      "name": "electron-builder",
+      "version": "26.15.3",
+      "purl": "pkg:npm/electron-builder@26.15.3",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/electron-userland/electron-builder" },
+        { "type": "advisories", "url": "https://github.com/electron-userland/electron-builder/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — empaquette le .app local (electron-builder.yml), pas de distribution/notarization (ADR-010)" },
+        { "name": "epic", "value": "Epic 6 — Story 6.1" }
+      ]
     }
   ]
 }

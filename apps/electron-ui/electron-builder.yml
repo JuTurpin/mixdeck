@@ -1,0 +1,35 @@
+appId: com.mixdeck.app
+productName: MixDeck
+directories:
+  output: dist
+
+# Sortie d'electron-vite build (Story 2.3) — le reste (node_modules runtime,
+# package.json) est géré par défaut par electron-builder.
+files:
+  - out/**/*
+
+# better-sqlite3 (Story 5.1, ADR-007) est un module natif : son binaire .node
+# ne peut pas être chargé (dlopen) depuis l'intérieur de l'archive app.asar,
+# il doit rester un fichier réel sur disque.
+asarUnpack:
+  - node_modules/better-sqlite3/**/*
+
+# Le Bridge natif (mixdeck_bridge.node, Story 2.2/4.4.1/4.4.2) et le process
+# d'isolation VST3 (MixDeck Plugin Worker.app, Story 4.4.1) ne sont pas des
+# modules npm — construits séparément par native/engine/CMakeLists.txt (voir
+# CLAUDE.md, commandes cmake-js --runtime=electron), copiés tels quels hors
+# de l'asar. Chemins lus dynamiquement par src/main/index.ts::createNativeEngine()
+# via process.resourcesPath en mode empaqueté.
+extraResources:
+  - from: ../../native/engine/build-electron/Release/mixdeck_bridge.node
+    to: native/mixdeck_bridge.node
+  - from: ../../native/engine/build-electron/MixDeckPluginWorker_artefacts/Release/MixDeck Plugin Worker.app
+    to: native/MixDeck Plugin Worker.app
+
+mac:
+  category: public.app-category.music
+  # Pas de certificat Developer ID (usage strictement personnel, ADR-010) —
+  # désactive la recherche/signature automatique d'electron-builder, qui
+  # échouerait sinon faute d'identité. La signature ad-hoc réelle
+  # (codesign --sign -) est traitée par la Story 6.2, pas ici.
+  identity: null

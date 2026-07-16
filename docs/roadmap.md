@@ -1,7 +1,7 @@
 # MixDeck — roadmap.md
 
 > Séquençage du développement, basé sur les 4 phases du processus BMAD (Build More Architect Dreams — bmad-method.org) : **Analysis → Planning → Solutioning → Implementation**.
-> Dernière mise à jour : 2026-07-16
+> Dernière mise à jour : 2026-07-17
 > Voir aussi : `architecture.md`, `decision.md`, `progress.md`
 
 ## Comment lire ce document
@@ -66,9 +66,8 @@ Objectif : valider le DSP à l'oreille avant d'investir dans le bridge Electron.
 ### Epic 6 — Build local & lancement
 Usage strictement personnel (voir `decision.md` ADR-010) : pas de notarization, pas de distribution.
 6.1 electron-builder + build CMake combiné du module natif, packagé en `.app` local
-6.2 Signature ad-hoc locale (`codesign --sign -`) pour éviter les blocages Gatekeeper au lancement
-6.3 Script de build/lancement simple (one-liner) pour reconstruire après chaque évolution
 **Dépend de** : toutes les epics fonctionnelles (dernier lot avant usage quotidien).
+> Périmètre réduit à la Story 6.1 le 2026-07-17 (choix de Julien) : la signature ad-hoc (ex-6.2) et le script one-liner (ex-6.3) sont repoussés dans la section "Addon" ci-dessous, au même titre que les autres améliorations de confort — pas de blocage technique, juste une priorisation.
 
 ## Phase 3 — Implementation
 
@@ -97,4 +96,7 @@ Addons a voir quand tout sera fonctionnel, il s'agit de fonctionnalité a ajoute
 - définir des raccourcis clavier.
 - rendre le glisser de la platine (scratch/seek, Story 2.5) plus ergonomique — fonctionnel mais peu intuitif en l'état (sensibilité du drag, retour visuel pendant le geste).
 - ajouter un bouton volume pour chaque effet
+- ajouter une capacité d'intégrer musique d apple 
 - créer un Readme
+- signature ad-hoc locale (`codesign --sign -`) après packaging, pour éviter les blocages Gatekeeper au premier lancement (sorti d'Epic 6, ex-Story 6.2 — non bloquant, un clic droit → "Ouvrir" suffit en attendant)
+- script de build/lancement one-liner regroupant les étapes actuelles de packaging (`cmake-js --runtime=electron`, `electron-rebuild better-sqlite3`, `electron-vite build`, `electron-builder`) (sorti d'Epic 6, ex-Story 6.3)

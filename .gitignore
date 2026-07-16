@@ -12,6 +12,9 @@ native/**/build-electron/
 # electron-vite build output
 apps/**/out/
 
+# electron-builder packaged output (Story 6.1)
+apps/**/dist/
+
 # TypeScript incremental build cache (tsc --build)
 *.tsbuildinfo
 

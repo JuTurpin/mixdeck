@@ -1,7 +1,7 @@
 # MixDeck — decision.md
 
 > Journal des décisions techniques (ADR — Architecture Decision Record).
-> Dernière mise à jour : 2026-07-16
+> Dernière mise à jour : 2026-07-17
 > Voir aussi : `architecture.md`, `roadmap.md`, `progress.md`
 
 Chaque entrée : contexte → décision → alternatives écartées → statut.
@@ -63,6 +63,7 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 **Décision** : on retire tout ce qui relevait de la distribution publique — notarization Apple, Developer ID, Mac App Store. L'app est buildée et lancée localement sur sa machine. Une signature ad-hoc (`codesign --sign -`, gratuite, locale) suffit pour que Gatekeeper laisse tourner le binaire construit sur place ; si Gatekeeper bloque malgré tout un premier lancement, un simple clic droit → "Ouvrir" (ou `xattr -cr` sur le `.app`) suffit, sans compte développeur Apple ni frais annuels (99 $/an autrement).
 **Alternatives écartées** : notarization + Developer ID (ADR-008 initial) — inutile et coûteux (abonnement Apple Developer) pour un usage mono-poste.
 **Impact** : Epic 6 de `roadmap.md` simplifié (renommé "Build local & lancement"), suppression des stories liées à la signature/notarization/distribution.
+**Confirmé en implémentation (Story 6.1)** : empaquetage via `electron-builder` (`apps/electron-ui/electron-builder.yml`), `mac.identity: null` pour désactiver la recherche/signature automatique d'un certificat Developer ID (aucun disponible, sans quoi la build échoue). La signature ad-hoc réelle (`codesign --sign -`) n'a finalement pas été traitée dans cette story — Julien a choisi de réduire le périmètre d'Epic 6 à la seule Story 6.1 (packaging fonctionnel) et de repousser la signature ad-hoc dans la section "Addon" de `roadmap.md`, avec le script de build one-liner ; en attendant, un clic droit → "Ouvrir" suffit à passer Gatekeeper au premier lancement, comme anticipé plus haut.
 **Statut** : Accepté.
 
 ### ADR-011 — Interface d'édition des plugins : GUI native du plugin

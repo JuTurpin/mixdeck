@@ -62,10 +62,14 @@ function createWindow(): BrowserWindow {
 // aucune logique métier (ADR-014) — celle-ci vit dans les Controllers du
 // renderer (src/renderer/src/controllers/).
 function createNativeEngine(): any {
-  const bridgePath = join(
-    __dirname,
-    '../../../../native/engine/build-electron/Release/mixdeck_bridge.node'
-  )
+  // Story 6.1 — en dev, ces fichiers vivent dans l'arborescence de build CMake
+  // (native/engine/build-electron/...) à un chemin relatif fixe depuis
+  // out/main/index.js. Une fois empaqueté (electron-builder, extraResources
+  // dans electron-builder.yml), ils sont copiés tels quels sous
+  // Contents/Resources/native/ — d'où la bascule sur app.isPackaged.
+  const bridgePath = app.isPackaged
+    ? join(process.resourcesPath, 'native', 'mixdeck_bridge.node')
+    : join(__dirname, '../../../../native/engine/build-electron/Release/mixdeck_bridge.node')
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { NativeEngine } = require(bridgePath)
   const nativeEngine = new NativeEngine()
@@ -75,10 +79,19 @@ function createNativeEngine(): any {
   // bridgePath ci-dessus : le process Node/Electron lui-même ne renseigne
   // rien d'utile sur l'arborescence de build CMake (voir aussi
   // setHostWindowHandle plus bas, même raisonnement pour un handle natif).
-  const pluginWorkerPath = join(
-    __dirname,
-    '../../../../native/engine/build-electron/MixDeckPluginWorker_artefacts/Release/MixDeck Plugin Worker.app/Contents/MacOS/MixDeck Plugin Worker'
-  )
+  const pluginWorkerPath = app.isPackaged
+    ? join(
+        process.resourcesPath,
+        'native',
+        'MixDeck Plugin Worker.app',
+        'Contents',
+        'MacOS',
+        'MixDeck Plugin Worker'
+      )
+    : join(
+        __dirname,
+        '../../../../native/engine/build-electron/MixDeckPluginWorker_artefacts/Release/MixDeck Plugin Worker.app/Contents/MacOS/MixDeck Plugin Worker'
+      )
   nativeEngine.setPluginWorkerExecutablePath(pluginWorkerPath)
 
   return nativeEngine
