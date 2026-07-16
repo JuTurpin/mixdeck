@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
-import type { Track } from '../main/library'
+import type { Crate, Track } from '../main/library'
 
-export type { Track }
+export type { Crate, Track }
 
 // Story 4.1 — sous-ensemble de juce::PluginDescription utile côté JS.
 // identifierString (4.3) est l'identifiant stable à repasser à addPlugin.
@@ -122,6 +122,13 @@ const mixdeck = {
   libraryGetTracks: (): Promise<Track[]> => ipcRenderer.invoke('mixdeck:libraryGetTracks'),
   libraryPickAndScanFolder: (): Promise<Track[] | null> =>
     ipcRenderer.invoke('mixdeck:libraryPickAndScanFolder'),
+  // Story 5.2 — crates (tags multiples par piste, recherche/filtre côté client).
+  libraryGetCrates: (): Promise<Crate[]> => ipcRenderer.invoke('mixdeck:libraryGetCrates'),
+  libraryCreateCrate: (name: string): Promise<Crate[]> => ipcRenderer.invoke('mixdeck:libraryCreateCrate', name),
+  libraryAssignTrackToCrate: (trackId: number, crateId: number): Promise<Track[]> =>
+    ipcRenderer.invoke('mixdeck:libraryAssignTrackToCrate', trackId, crateId),
+  libraryRemoveTrackFromCrate: (trackId: number, crateId: number): Promise<Track[]> =>
+    ipcRenderer.invoke('mixdeck:libraryRemoveTrackFromCrate', trackId, crateId),
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).
   windowMinimize: (): void => ipcRenderer.send('mixdeck:windowMinimize'),
   windowToggleMaximize: (): void => ipcRenderer.send('mixdeck:windowToggleMaximize'),

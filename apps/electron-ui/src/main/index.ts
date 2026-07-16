@@ -1,7 +1,17 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { startEngineEventPump } from './engineEvents'
-import { getAllTracks, openLibraryDatabase, scanFolder, type Track } from './library'
+import {
+  assignTrackToCrate,
+  createCrate,
+  getAllTracks,
+  getCrates,
+  openLibraryDatabase,
+  removeTrackFromCrate,
+  scanFolder,
+  type Crate,
+  type Track
+} from './library'
 import type Database from 'better-sqlite3'
 
 function createWindow(): BrowserWindow {
@@ -168,6 +178,18 @@ function registerLibraryHandlers(db: Database.Database): void {
       if (result.canceled) return null
       return scanFolder(db, result.filePaths[0])
     }
+  )
+  // Story 5.2 — crates (tags multiples par piste). Recherche/filtre restent
+  // côté client (renderer), pas de requête serveur dédiée.
+  ipcMain.handle('mixdeck:libraryGetCrates', (): Crate[] => getCrates(db))
+  ipcMain.handle('mixdeck:libraryCreateCrate', (_event, name: string): Crate[] => createCrate(db, name))
+  ipcMain.handle(
+    'mixdeck:libraryAssignTrackToCrate',
+    (_event, trackId: number, crateId: number): Track[] => assignTrackToCrate(db, trackId, crateId)
+  )
+  ipcMain.handle(
+    'mixdeck:libraryRemoveTrackFromCrate',
+    (_event, trackId: number, crateId: number): Track[] => removeTrackFromCrate(db, trackId, crateId)
   )
 }
 

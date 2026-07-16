@@ -45,7 +45,7 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 ### ADR-007 — Bibliothèque de sons : SQLite local (better-sqlite3)
 **Contexte** : besoin de stocker métadonnées, tags, crates, cue points sans dépendance serveur.
 **Décision** : SQLite via `better-sqlite3`, cohérent avec l'approche de l'app de bibliothèque existante (le code n'est pas réutilisé, mais la logique de stockage locale l'est).
-**Confirmé en implémentation (Story 5.1)** : entièrement côté Node/Electron (`apps/electron-ui/src/main/library.ts`), aucun fichier C++ touché — pas de traitement de signal, pas de raison de passer par le moteur natif. Module natif reconstruit contre l'ABI Electron via `@electron/rebuild`, même piège que le Bridge (`mixdeck_bridge.node`). Métadonnées/tags/crates/cue points restent la Story 5.2 ; 5.1 couvre uniquement chemin/titre/artiste/durée.
+**Confirmé en implémentation (Stories 5.1 et 5.2)** : entièrement côté Node/Electron (`apps/electron-ui/src/main/library.ts`), aucun fichier C++ touché — pas de traitement de signal, pas de raison de passer par le moteur natif. Module natif reconstruit contre l'ABI Electron via `@electron/rebuild`, même piège que le Bridge (`mixdeck_bridge.node`). 5.1 : chemin/titre/artiste/durée. 5.2 : BPM/clé (lus des tags via `music-metadata`, pas d'analyse audio ; clé convertie en notation Camelot) et crates (CRUD minimal, assignation par piste). Cue points repoussés en Story 5.3 (nature différente — Deck en exécution, moteur natif).
 **Statut** : Accepté.
 
 ### ADR-008 — Processus de développement : BMAD + Claude Code, avec étapes manuelles identifiées
