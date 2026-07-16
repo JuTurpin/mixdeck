@@ -7,8 +7,9 @@ import { readdir } from 'fs/promises'
 // entièrement côté Node/Electron (pas de traitement de signal, donc pas de
 // raison de passer par le moteur natif). Story 5.2 ajoute BPM/clé (lus des
 // tags, pas d'analyse audio) et les crates (tags multiples par piste, voir
-// le mock Claude Design). Cue points repoussés en Story 5.3 (touchent le
-// Deck en exécution, nature différente).
+// le mock Claude Design). Story 5.3 ajoute les cue points (hot cues) — pas
+// besoin non plus de moteur natif : Deck::getPosition()/seek() existent déjà
+// côté Bridge, un cue point n'est qu'une position mémorisée par fichier.
 export interface Track {
   id: number
   filePath: string
@@ -24,6 +25,15 @@ export interface Track {
 export interface Crate {
   id: number
   name: string
+}
+
+// Story 5.3 — pas de clé étrangère vers `tracks` : volontairement découplé
+// de la bibliothèque scannée, pour que les cue points fonctionnent aussi sur
+// un morceau chargé via le sélecteur de fichier propre du Deck (pas
+// seulement depuis LibraryPanel).
+export interface CuePoint {
+  slotIndex: number
+  positionSeconds: number
 }
 
 // Mêmes extensions que le sélecteur de fichier existant (DeckController.pickAndLoadTrack).
@@ -83,6 +93,12 @@ export function openLibraryDatabase(): Database.Database {
       crate_id INTEGER NOT NULL REFERENCES crates(id) ON DELETE CASCADE,
       PRIMARY KEY (track_id, crate_id)
     );
+    CREATE TABLE IF NOT EXISTS cue_points (
+      file_path TEXT NOT NULL,
+      slot_index INTEGER NOT NULL,
+      position_seconds REAL NOT NULL,
+      PRIMARY KEY (file_path, slot_index)
+    );
   `)
   // Story 5.2 — colonnes ajoutées après coup sur une base qui peut déjà
   // exister depuis la Story 5.1 (pas de ALTER TABLE ADD COLUMN IF NOT EXISTS
@@ -126,6 +142,33 @@ export function assignTrackToCrate(db: Database.Database, trackId: number, crate
 export function removeTrackFromCrate(db: Database.Database, trackId: number, crateId: number): Track[] {
   db.prepare('DELETE FROM track_crates WHERE track_id = ? AND crate_id = ?').run(trackId, crateId)
   return getAllTracks(db)
+}
+
+// Story 5.3 — cue points (hot cues), par chemin de fichier (voir CuePoint ci-dessus).
+export function getCuePoints(db: Database.Database, filePath: string): CuePoint[] {
+  const rows = db
+    .prepare('SELECT slot_index, position_seconds FROM cue_points WHERE file_path = ? ORDER BY slot_index')
+    .all(filePath) as { slot_index: number; position_seconds: number }[]
+  return rows.map((r) => ({ slotIndex: r.slot_index, positionSeconds: r.position_seconds }))
+}
+
+export function setCuePoint(
+  db: Database.Database,
+  filePath: string,
+  slotIndex: number,
+  positionSeconds: number
+): CuePoint[] {
+  db.prepare(
+    `INSERT INTO cue_points (file_path, slot_index, position_seconds)
+     VALUES (?, ?, ?)
+     ON CONFLICT(file_path, slot_index) DO UPDATE SET position_seconds = excluded.position_seconds`
+  ).run(filePath, slotIndex, positionSeconds)
+  return getCuePoints(db, filePath)
+}
+
+export function clearCuePoint(db: Database.Database, filePath: string, slotIndex: number): CuePoint[] {
+  db.prepare('DELETE FROM cue_points WHERE file_path = ? AND slot_index = ?').run(filePath, slotIndex)
+  return getCuePoints(db, filePath)
 }
 
 // Story 5.2 — conversion note musicale -> notation Camelot (roue des DJ),

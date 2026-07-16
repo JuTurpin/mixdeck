@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
-import type { Crate, Track } from '../main/library'
+import type { Crate, CuePoint, Track } from '../main/library'
 
-export type { Crate, Track }
+export type { Crate, CuePoint, Track }
 
 // Story 4.1 — sous-ensemble de juce::PluginDescription utile côté JS.
 // identifierString (4.3) est l'identifiant stable à repasser à addPlugin.
@@ -129,6 +129,13 @@ const mixdeck = {
     ipcRenderer.invoke('mixdeck:libraryAssignTrackToCrate', trackId, crateId),
   libraryRemoveTrackFromCrate: (trackId: number, crateId: number): Promise<Track[]> =>
     ipcRenderer.invoke('mixdeck:libraryRemoveTrackFromCrate', trackId, crateId),
+  // Story 5.3 — cue points (hot cues), par chemin de fichier.
+  libraryGetCuePoints: (filePath: string): Promise<CuePoint[]> =>
+    ipcRenderer.invoke('mixdeck:libraryGetCuePoints', filePath),
+  librarySetCuePoint: (filePath: string, slotIndex: number, positionSeconds: number): Promise<CuePoint[]> =>
+    ipcRenderer.invoke('mixdeck:librarySetCuePoint', filePath, slotIndex, positionSeconds),
+  libraryClearCuePoint: (filePath: string, slotIndex: number): Promise<CuePoint[]> =>
+    ipcRenderer.invoke('mixdeck:libraryClearCuePoint', filePath, slotIndex),
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).
   windowMinimize: (): void => ipcRenderer.send('mixdeck:windowMinimize'),
   windowToggleMaximize: (): void => ipcRenderer.send('mixdeck:windowToggleMaximize'),

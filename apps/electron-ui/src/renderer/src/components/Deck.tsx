@@ -1,16 +1,19 @@
 // Composant Deck partagé A/B, paramétré par accent/label (architecture.md
 // §6). BPM détecté à l'import (Story 3.2), sync automatique entre decks
-// (Story 3.3), chaîne d'effets par deck (Story 4.3). Pas de clé, waveform,
-// hot cues ni EQ : ces éléments n'ont aucun moteur derrière aujourd'hui (voir
-// docs/decision.md, discussion Story 2.5) et arriveront avec leurs stories
-// respectives.
+// (Story 3.3), chaîne d'effets par deck (Story 4.3), cue points (Story 5.3).
+// Pas de clé, waveform ni EQ : ces éléments n'ont aucun moteur derrière
+// aujourd'hui (voir docs/decision.md, discussion Story 2.5) et arriveront
+// avec leurs stories respectives.
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { DeckController } from '../controllers/DeckController'
 import type { MixerController } from '../controllers/MixerController'
+import { LibraryController } from '../controllers/LibraryController'
 import { useDeckState } from '../state'
 import FilterKnob from './FilterKnob'
 import PluginChainPanel from './PluginChainPanel'
-import type { AvailablePlugin } from '../../../preload'
+import type { AvailablePlugin, CuePoint } from '../../../preload'
+
+const CUE_SLOT_COUNT = 8
 
 // Story 3.3 — bpm/pitch remontés au parent commun (App.tsx) : aucune des
 // deux valeurs n'est reconstruite ailleurs, c'est ce que ce composant sait
@@ -30,6 +33,12 @@ interface DeckProps {
   // Story 4.3 — plugins découverts côté ConsoleMaster (scan/glisser-déposer,
   // 4.1/4.2), partagés avec la chaîne d'effets de ce deck (voir App.tsx).
   availablePlugins: AvailablePlugin[]
+  // Story 5.3 — chemin du morceau actuellement chargé, remonté à App.tsx
+  // (par ce composant lui-même ou par LibraryPanel) puis redescendu ici :
+  // sert de clé pour retrouver les cue points de ce morceau quelle que soit
+  // la façon dont il a été chargé.
+  loadedPath: string | null
+  onLoadedPathChange: (path: string | null) => void
 }
 
 function formatSeconds(seconds: number): string {
@@ -45,14 +54,18 @@ export default function Deck({
   mixer,
   otherDeck,
   onSyncInfoChange,
-  availablePlugins
+  availablePlugins,
+  loadedPath,
+  onLoadedPathChange
 }: DeckProps) {
   const controller = useMemo(() => new DeckController(deckIndex), [deckIndex])
+  const libraryController = useMemo(() => new LibraryController(), [])
   const { state, position, length, bpm } = useDeckState(controller)
   const [error, setError] = useState('')
   const [filterValue, setFilterValue] = useState(0)
   const [pitchValue, setPitchValue] = useState(0)
   const [syncLocked, setSyncLocked] = useState(false)
+  const [cuePoints, setCuePoints] = useState<CuePoint[]>([])
   const dragStart = useRef<{ x: number; position: number } | null>(null)
 
   const hasTrack = state !== 'EMPTY'
@@ -79,9 +92,38 @@ export default function Deck({
     controller.setPitch(percent)
   }, [syncLocked, bpm, otherDeck.bpm, otherDeck.pitch, controller])
 
+  // Story 5.3 — recharge les cue points du morceau à chaque changement de
+  // loadedPath, quelle que soit l'origine du chargement (sélecteur propre ou
+  // LibraryPanel, voir App.tsx).
+  useEffect(() => {
+    if (!loadedPath) {
+      setCuePoints([])
+      return
+    }
+    libraryController.getCuePoints(loadedPath).then(setCuePoints)
+  }, [loadedPath, libraryController])
+
   const handleLoadClick = async (): Promise<void> => {
     const result = await controller.pickAndLoadTrack()
-    if (result !== null) setError(result)
+    if (result === null) return
+    setError(result.error)
+    if (!result.error) onLoadedPathChange(result.path)
+  }
+
+  const handleUnload = (): void => {
+    controller.unloadTrack()
+    onLoadedPathChange(null)
+  }
+
+  const handlePadClick = async (slot: number, shiftKey: boolean): Promise<void> => {
+    if (!loadedPath) return
+    const existing = cuePoints.find((c) => c.slotIndex === slot)
+    if (existing) {
+      if (shiftKey) setCuePoints(await libraryController.clearCuePoint(loadedPath, slot))
+      else controller.seek(existing.positionSeconds)
+    } else {
+      setCuePoints(await libraryController.setCuePoint(loadedPath, slot, position))
+    }
   }
 
   const handlePlatterDown = (event: PointerEvent<HTMLDivElement>): void => {
@@ -191,11 +233,7 @@ export default function Deck({
         <button onClick={() => controller.stop()} disabled={!hasTrack} style={{ fontSize: 11 }}>
           Stop
         </button>
-        <button
-          onClick={() => controller.unloadTrack()}
-          disabled={!hasTrack}
-          style={{ fontSize: 11 }}
-        >
+        <button onClick={handleUnload} disabled={!hasTrack} style={{ fontSize: 11 }}>
           Unload
         </button>
       </div>
@@ -251,6 +289,37 @@ export default function Deck({
           }}
           label="FILTRE"
         />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+        {Array.from({ length: CUE_SLOT_COUNT }, (_, slot) => {
+          const cue = cuePoints.find((c) => c.slotIndex === slot)
+          return (
+            <button
+              key={slot}
+              onClick={(e) => handlePadClick(slot, e.shiftKey)}
+              disabled={!hasTrack}
+              title={
+                cue
+                  ? `Cue ${slot + 1} (${formatSeconds(cue.positionSeconds)}) — clic pour y aller, Maj+clic pour effacer`
+                  : `Cue ${slot + 1} — clic pour poser ici`
+              }
+              style={{
+                height: 32,
+                borderRadius: 4,
+                border: 'none',
+                background: cue ? accent : '#1d2026',
+                color: cue ? '#0d0e11' : '#565a63',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: hasTrack ? 'pointer' : 'default',
+                boxShadow: cue ? `0 0 8px ${accent}` : 'none'
+              }}
+            >
+              {slot + 1}
+            </button>
+          )
+        })}
       </div>
 
       <PluginChainPanel controller={controller} availablePlugins={availablePlugins} />

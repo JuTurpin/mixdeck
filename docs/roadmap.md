@@ -1,7 +1,7 @@
 # MixDeck — roadmap.md
 
 > Séquençage du développement, basé sur les 4 phases du processus BMAD (Build More Architect Dreams — bmad-method.org) : **Analysis → Planning → Solutioning → Implementation**.
-> Dernière mise à jour : 2026-07-11
+> Dernière mise à jour : 2026-07-16
 > Voir aussi : `architecture.md`, `decision.md`, `progress.md`
 
 ## Comment lire ce document
@@ -59,7 +59,8 @@ Objectif : valider le DSP à l'oreille avant d'investir dans le bridge Electron.
 
 ### Epic 5 — Bibliothèque de sons
 5.1 Base SQLite (better-sqlite3), scan/import de dossiers
-5.2 Métadonnées, tags, crates, cue points
+5.2 Métadonnées (BPM/clé), tags, crates, recherche
+5.3 Cue points (hot cues) — sorti de la Story 5.2 en cours d'implémentation (qui incluait initialement "cue points" avec métadonnées/tags/crates) ; persistance par chemin de fichier, aucun changement natif nécessaire (`Deck::getPosition()`/`seek()` suffisent déjà)
 **Dépend de** : Epic 2 (peut démarrer en parallèle des Epics 3/4).
 
 ### Epic 6 — Build local & lancement
@@ -91,7 +92,6 @@ Epic 1 (moteur standalone)
 
 ## Addon
 Addons a voir quand tout sera fonctionnel, il s'agit de fonctionnalité a ajouter
-- possibilité d'enregistrer le mix
 - il faudrait avoir un affichage qui peut donner des infos (a voir commment changer les infos afficher mais au moins pouvoir montrer la répartition du fader)
 - pouvoir mettre une loop sur un morceau, ou un certain nombre de secondes
 - définir des raccourcis clavier.

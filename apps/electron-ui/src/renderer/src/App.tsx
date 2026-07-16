@@ -30,6 +30,11 @@ export default function App() {
   // deux chaînes d'effets par deck puissent aussi y piocher (même liste,
   // partagée par tous les emplacements de la chaîne, deck ou bus master).
   const [availablePlugins, setAvailablePlugins] = useState<AvailablePlugin[]>([])
+  // Story 5.3 — même mécanique que syncInfo ci-dessus : chaque Deck (son
+  // propre sélecteur de fichier) et LibraryPanel (ses boutons "→ A"/"→ B")
+  // remontent ici le chemin qu'ils viennent de charger, pour que Deck.tsx
+  // puisse retrouver les cue points du morceau quel que soit son origine.
+  const [loadedPaths, setLoadedPaths] = useState<[string | null, string | null]>([null, null])
 
   // Références stables (jamais recréées) pour ne redéclencher l'effet de
   // remontée de Deck.tsx que lorsque bpm/pitch changent réellement.
@@ -39,6 +44,19 @@ export default function App() {
   const handleSyncInfoChangeB = useCallback((info: DeckSyncInfo) => {
     setSyncInfo((prev) => (sameSyncInfo(prev[1], info) ? prev : [prev[0], info]))
   }, [])
+  const handleLoadedPathChangeA = useCallback((path: string | null) => {
+    setLoadedPaths((prev) => [path, prev[1]])
+  }, [])
+  const handleLoadedPathChangeB = useCallback((path: string | null) => {
+    setLoadedPaths((prev) => [prev[0], path])
+  }, [])
+  const handleTrackLoadedToDeck = useCallback(
+    (deckIndex: number, path: string) => {
+      if (deckIndex === 0) handleLoadedPathChangeA(path)
+      else handleLoadedPathChangeB(path)
+    },
+    [handleLoadedPathChangeA, handleLoadedPathChangeB]
+  )
 
   return (
     <div
@@ -61,6 +79,8 @@ export default function App() {
           otherDeck={syncInfo[1]}
           onSyncInfoChange={handleSyncInfoChangeA}
           availablePlugins={availablePlugins}
+          loadedPath={loadedPaths[0]}
+          onLoadedPathChange={handleLoadedPathChangeA}
         />
         <ConsoleMaster mixer={mixer} onAvailablePluginsChange={setAvailablePlugins} />
         <Deck
@@ -71,10 +91,12 @@ export default function App() {
           otherDeck={syncInfo[0]}
           onSyncInfoChange={handleSyncInfoChangeB}
           availablePlugins={availablePlugins}
+          loadedPath={loadedPaths[1]}
+          onLoadedPathChange={handleLoadedPathChangeB}
         />
       </div>
       <div style={{ padding: '0 16px 16px' }}>
-        <LibraryPanel />
+        <LibraryPanel onTrackLoadedToDeck={handleTrackLoadedToDeck} />
       </div>
     </div>
   )

@@ -1,8 +1,8 @@
-import type { Crate, Track } from '../../../preload'
+import type { Crate, CuePoint, Track } from '../../../preload'
 
 // Controller (ADR-014) : logique métier pour la bibliothèque de sons
 // (Story 5.1 — base SQLite, scan/import de dossiers ; Story 5.2 — BPM/clé
-// lus des tags, crates. Cue points repoussés en Story 5.3).
+// lus des tags, crates ; Story 5.3 — cue points, par chemin de fichier).
 export class LibraryController {
   getTracks(): Promise<Track[]> {
     return window.mixdeck.libraryGetTracks()
@@ -29,5 +29,17 @@ export class LibraryController {
 
   removeTrackFromCrate(trackId: number, crateId: number): Promise<Track[]> {
     return window.mixdeck.libraryRemoveTrackFromCrate(trackId, crateId)
+  }
+
+  getCuePoints(filePath: string): Promise<CuePoint[]> {
+    return window.mixdeck.libraryGetCuePoints(filePath)
+  }
+
+  setCuePoint(filePath: string, slotIndex: number, positionSeconds: number): Promise<CuePoint[]> {
+    return window.mixdeck.librarySetCuePoint(filePath, slotIndex, positionSeconds)
+  }
+
+  clearCuePoint(filePath: string, slotIndex: number): Promise<CuePoint[]> {
+    return window.mixdeck.libraryClearCuePoint(filePath, slotIndex)
   }
 }

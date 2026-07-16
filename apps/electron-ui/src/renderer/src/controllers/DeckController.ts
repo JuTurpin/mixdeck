@@ -12,12 +12,15 @@ export class DeckController {
   }
 
   // Ouvre le sélecteur de fichier natif puis charge le morceau choisi.
-  // Retourne null si l'utilisateur annule, sinon le message d'erreur du
-  // Bridge ("" = succès) — même convention que loadTrack().
-  async pickAndLoadTrack(): Promise<string | null> {
+  // Retourne null si l'utilisateur annule, sinon le chemin choisi et le
+  // message d'erreur du Bridge ("" = succès) — le chemin est nécessaire à
+  // l'appelant pour remonter "quel fichier est chargé sur ce deck" (Story
+  // 5.3, cue points) plutôt que de le redemander séparément.
+  async pickAndLoadTrack(): Promise<{ path: string; error: string } | null> {
     const path = await window.mixdeck.pickFile()
     if (!path) return null
-    return this.loadTrack(path)
+    const error = await this.loadTrack(path)
+    return { path, error }
   }
 
   unloadTrack(): Promise<void> {

@@ -3,13 +3,17 @@ import { join } from 'path'
 import { startEngineEventPump } from './engineEvents'
 import {
   assignTrackToCrate,
+  clearCuePoint,
   createCrate,
   getAllTracks,
   getCrates,
+  getCuePoints,
   openLibraryDatabase,
   removeTrackFromCrate,
   scanFolder,
+  setCuePoint,
   type Crate,
+  type CuePoint,
   type Track
 } from './library'
 import type Database from 'better-sqlite3'
@@ -190,6 +194,17 @@ function registerLibraryHandlers(db: Database.Database): void {
   ipcMain.handle(
     'mixdeck:libraryRemoveTrackFromCrate',
     (_event, trackId: number, crateId: number): Track[] => removeTrackFromCrate(db, trackId, crateId)
+  )
+  // Story 5.3 — cue points (hot cues), par chemin de fichier (voir library.ts).
+  ipcMain.handle('mixdeck:libraryGetCuePoints', (_event, filePath: string): CuePoint[] => getCuePoints(db, filePath))
+  ipcMain.handle(
+    'mixdeck:librarySetCuePoint',
+    (_event, filePath: string, slotIndex: number, positionSeconds: number): CuePoint[] =>
+      setCuePoint(db, filePath, slotIndex, positionSeconds)
+  )
+  ipcMain.handle(
+    'mixdeck:libraryClearCuePoint',
+    (_event, filePath: string, slotIndex: number): CuePoint[] => clearCuePoint(db, filePath, slotIndex)
   )
 }
 

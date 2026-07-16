@@ -1,8 +1,9 @@
 // Story 5.1 — bibliothèque de sons (base SQLite + scan/import de dossiers).
 // Story 5.2 — BPM/Clé (lus des tags, pas d'analyse audio), crates (tags
 // multiples par piste, assignation/retrait/filtre) et recherche texte,
-// tout côté client comme dans le mock Claude Design. Cue points repoussés en
-// Story 5.3 (touchent le Deck en exécution, nature différente).
+// tout côté client comme dans le mock Claude Design. Story 5.3 (cue points)
+// signale à App.tsx quel chemin est chargé sur quel deck (onTrackLoadedToDeck)
+// — les cue points eux-mêmes sont gérés/affichés dans Deck.tsx.
 import { useEffect, useMemo, useState } from 'react'
 import type { Crate, Track } from '../../../preload'
 import { DeckController } from '../controllers/DeckController'
@@ -130,7 +131,14 @@ function TrackRow({ track, crates, deckA, deckB, onLoad, onAssign, onRemoveCrate
   )
 }
 
-export default function LibraryPanel() {
+interface LibraryPanelProps {
+  // Story 5.3 — signale à App.tsx quel chemin vient d'être chargé sur quel
+  // deck, pour que Deck.tsx puisse retrouver les cue points de ce morceau
+  // (voir App.tsx et Deck.tsx).
+  onTrackLoadedToDeck: (deckIndex: number, path: string) => void
+}
+
+export default function LibraryPanel({ onTrackLoadedToDeck }: LibraryPanelProps) {
   const controller = useMemo(() => new LibraryController(), [])
   // Wrappers légers sans état propre (DeckController ne fait que relayer
   // window.mixdeck.deckXxx(deckIndex, ...)) — pas besoin de les partager avec
@@ -162,6 +170,7 @@ export default function LibraryPanel() {
   const handleLoad = async (deck: DeckController, path: string): Promise<void> => {
     const result = await deck.loadTrack(path)
     if (result) setError(result)
+    else onTrackLoadedToDeck(deck.deckIndex, path)
   }
 
   const handleCreateCrate = async (): Promise<void> => {
