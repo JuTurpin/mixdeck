@@ -1,7 +1,7 @@
 # MixDeck — decision.md
 
 > Journal des décisions techniques (ADR — Architecture Decision Record).
-> Dernière mise à jour : 2026-07-15
+> Dernière mise à jour : 2026-07-16
 > Voir aussi : `architecture.md`, `roadmap.md`, `progress.md`
 
 Chaque entrée : contexte → décision → alternatives écartées → statut.
@@ -45,6 +45,7 @@ Chaque entrée : contexte → décision → alternatives écartées → statut.
 ### ADR-007 — Bibliothèque de sons : SQLite local (better-sqlite3)
 **Contexte** : besoin de stocker métadonnées, tags, crates, cue points sans dépendance serveur.
 **Décision** : SQLite via `better-sqlite3`, cohérent avec l'approche de l'app de bibliothèque existante (le code n'est pas réutilisé, mais la logique de stockage locale l'est).
+**Confirmé en implémentation (Story 5.1)** : entièrement côté Node/Electron (`apps/electron-ui/src/main/library.ts`), aucun fichier C++ touché — pas de traitement de signal, pas de raison de passer par le moteur natif. Module natif reconstruit contre l'ABI Electron via `@electron/rebuild`, même piège que le Bridge (`mixdeck_bridge.node`). Métadonnées/tags/crates/cue points restent la Story 5.2 ; 5.1 couvre uniquement chemin/titre/artiste/durée.
 **Statut** : Accepté.
 
 ### ADR-008 — Processus de développement : BMAD + Claude Code, avec étapes manuelles identifiées

@@ -41,8 +41,10 @@ mixdeck/
 │       ├── standalone-app/       # Harnais de test JUCE (GUI minimale, hors Electron) — Epic 1
 │       ├── package.json          # node-addon-api, cmake-js — build du Bridge (Story 2.2)
 │       └── CMakeLists.txt
-├── db/
-│   └── schema.sql               # Bibliothèque de sons (SQLite) — à venir, Epic 5
+├── (pas de db/ séparé — schéma SQLite créé au démarrage par
+│    apps/electron-ui/src/main/library.ts, `CREATE TABLE IF NOT EXISTS`,
+│    fichier .sqlite3 dans app.getPath('userData'), pas versionné dans le
+│    dépôt ; voir Story 5.1, ADR-007)
 ├── design/
 │   └── export-html/             # Export Claude Design — référence visuelle et composants
 └── docs/

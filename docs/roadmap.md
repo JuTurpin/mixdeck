@@ -96,3 +96,4 @@ Addons a voir quand tout sera fonctionnel, il s'agit de fonctionnalité a ajoute
 - pouvoir mettre une loop sur un morceau, ou un certain nombre de secondes
 - définir des raccourcis clavier.
 - rendre le glisser de la platine (scratch/seek, Story 2.5) plus ergonomique — fonctionnel mais peu intuitif en l'état (sensibilité du drag, retour visuel pendant le geste).
+- ajouter un bouton volume pour chaque effet

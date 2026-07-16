@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { MIXDECK_EVENT_CHANNEL, type MixdeckEvent } from '../shared/events'
+import type { Track } from '../main/library'
+
+export type { Track }
 
 // Story 4.1 — sous-ensemble de juce::PluginDescription utile côté JS.
 // identifierString (4.3) est l'identifiant stable à repasser à addPlugin.
@@ -112,6 +115,13 @@ const mixdeck = {
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
   // Story 2.5 — sélecteur de fichier natif (dialog.showOpenDialog côté main).
   pickFile: (): Promise<string | null> => ipcRenderer.invoke('mixdeck:pickFile'),
+  // Story 5.1 (ADR-007) — bibliothèque de sons (SQLite local, voir
+  // src/main/library.ts). libraryPickAndScanFolder retourne null si
+  // l'utilisateur annule le sélecteur de dossier, même convention que
+  // pickFile/pickPluginFile.
+  libraryGetTracks: (): Promise<Track[]> => ipcRenderer.invoke('mixdeck:libraryGetTracks'),
+  libraryPickAndScanFolder: (): Promise<Track[] | null> =>
+    ipcRenderer.invoke('mixdeck:libraryPickAndScanFolder'),
   // Story 2.5 — commandes de fenêtre (fenêtre sans cadre natif, TitleBar.tsx).
   windowMinimize: (): void => ipcRenderer.send('mixdeck:windowMinimize'),
   windowToggleMaximize: (): void => ipcRenderer.send('mixdeck:windowToggleMaximize'),

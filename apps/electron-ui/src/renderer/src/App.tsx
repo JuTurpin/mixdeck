@@ -1,10 +1,12 @@
 // Story 2.5 — vraie UI, calquée sur l'export Claude Design (architecture.md
 // §6), pour ce que le moteur pilote réellement aujourd'hui : Deck / Mixer /
-// Filtre. BPM/clé, waveform, hot cues, EQ, effets, vumètres et bibliothèque
-// n'ont pas encore de moteur derrière — absents de l'écran pour l'instant
-// (voir le plan de cette story), pas de placeholders morts.
+// Filtre. BPM/clé, waveform, hot cues, EQ, effets, vumètres n'ont pas encore
+// de moteur derrière — absents de l'écran pour l'instant (voir le plan de
+// cette story), pas de placeholders morts. Bibliothèque ajoutée en Story 5.1
+// (voir LibraryPanel, périmètre minimal : pas de crates/recherche, 5.2).
 import { useCallback, useMemo, useState } from 'react'
 import { TitleBar, Deck, ConsoleMaster, type DeckSyncInfo } from './components'
+import LibraryPanel from './components/LibraryPanel'
 import { MixerController } from './controllers'
 import type { AvailablePlugin } from '../../preload'
 
@@ -70,6 +72,9 @@ export default function App() {
           onSyncInfoChange={handleSyncInfoChangeB}
           availablePlugins={availablePlugins}
         />
+      </div>
+      <div style={{ padding: '0 16px 16px' }}>
+        <LibraryPanel />
       </div>
     </div>
   )

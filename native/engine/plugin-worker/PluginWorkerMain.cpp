@@ -3,6 +3,37 @@
 
 namespace {
 
+// Story 4.4.1 (fix) — wraps the real AudioProcessorEditor (owned by a
+// third-party plugin, so we can't subclass it directly) purely to override
+// userTriedToCloseWindow(): JUCE's default implementation of that hook does
+// nothing in a Release build (an assertion in debug only), so without this,
+// clicking the native red close button on the editor window had no effect at
+// all — reported by Julien after the first real test. Closing this window
+// must never destroy the plugin instance or drop it from the chain (that's
+// the separate "x" remove button in PluginChainPanel.tsx) — just hide it,
+// exactly like the existing HideEditor message.
+class WorkerEditorWindow : public juce::Component {
+public:
+    explicit WorkerEditorWindow(std::unique_ptr<juce::AudioProcessorEditor> editorToOwn)
+        : editor(std::move(editorToOwn)) {
+        addAndMakeVisible(*editor);
+        setSize(editor->getWidth(), editor->getHeight());
+    }
+
+    void resized() override { editor->setBounds(getLocalBounds()); }
+
+    // Some plugins resize their own editor — keep this window matching.
+    void childBoundsChanged(Component* child) override {
+        if (child == editor.get())
+            setSize(editor->getWidth(), editor->getHeight());
+    }
+
+    void userTriedToCloseWindow() override { setVisible(false); }
+
+private:
+    std::unique_ptr<juce::AudioProcessorEditor> editor;
+};
+
 // Story 4.4.1 — child-process side of plugin isolation: loads exactly one
 // VST3 plugin (told which one via a LoadPlugin message from
 // IsolatedPluginHost) and hosts its real editor as an independent top-level
@@ -62,8 +93,8 @@ public:
                 break;
             case WorkerMessageType::hideEditor:
                 juce::MessageManager::callAsync([this] {
-                    if (editor != nullptr)
-                        editor->setVisible(false);
+                    if (editorWindow != nullptr)
+                        editorWindow->setVisible(false);
                 });
                 break;
             case WorkerMessageType::audioBlock:
@@ -97,19 +128,22 @@ private:
     void showEditorOnMessageThread() {
         if (instance == nullptr)
             return;
-        if (editor == nullptr)
-            editor.reset(instance->createEditorAndMakeActive());
-        if (editor == nullptr)
-            return;
+        if (editorWindow == nullptr) {
+            std::unique_ptr<juce::AudioProcessorEditor> editor(instance->createEditorAndMakeActive());
+            if (editor == nullptr)
+                return;
+            editorWindow = std::make_unique<WorkerEditorWindow>(std::move(editor));
+        }
 
-        // Real decorated top-level window (title bar, close button) — the
-        // same styleFlags PluginChain::showPluginEditor already uses for the
-        // standalone-harness case (no foreign window to embed into there
-        // either), just relocated to this process.
-        editor->addToDesktop(juce::ComponentPeer::windowHasTitleBar | juce::ComponentPeer::windowHasCloseButton
-                              | juce::ComponentPeer::windowAppearsOnTaskbar);
-        editor->setVisible(true);
-        editor->toFront(true);
+        // Real decorated top-level window (title bar, close/minimise
+        // buttons) — the same styleFlags PluginChain::showPluginEditor
+        // already uses for the standalone-harness case (no foreign window to
+        // embed into there either), just relocated to this process.
+        editorWindow->addToDesktop(juce::ComponentPeer::windowHasTitleBar | juce::ComponentPeer::windowHasCloseButton
+                                    | juce::ComponentPeer::windowHasMinimiseButton
+                                    | juce::ComponentPeer::windowAppearsOnTaskbar);
+        editorWindow->setVisible(true);
+        editorWindow->toFront(true);
         // This process is a background helper, not the active app — toFront()
         // alone (Peer::toFront -> [window makeKeyAndOrderFront:]) orders the
         // window front within this app's own layer, but macOS won't switch
@@ -123,7 +157,7 @@ private:
 
     juce::AudioPluginFormatManager formatManager;
     std::unique_ptr<juce::AudioPluginInstance> instance;
-    std::unique_ptr<juce::AudioProcessorEditor> editor;
+    std::unique_ptr<WorkerEditorWindow> editorWindow;
     // Story 4.4.2 — reused for every audioBlock message (sized once the
     // plugin loads, see loadPlugin above) rather than reallocated per block.
     juce::AudioBuffer<float> scratchAudio;

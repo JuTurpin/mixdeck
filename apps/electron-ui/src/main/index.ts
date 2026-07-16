@@ -1,6 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { startEngineEventPump } from './engineEvents'
+import { getAllTracks, openLibraryDatabase, scanFolder, type Track } from './library'
+import type Database from 'better-sqlite3'
 
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
@@ -154,6 +156,21 @@ function registerPluginFilePickerHandler(): void {
   })
 }
 
+// Story 5.1 (ADR-007) — bibliothèque de sons, base SQLite locale. Indépendant
+// du Bridge natif (pas de traitement de signal, voir library.ts) : son propre
+// try/catch, une panne de l'un ne doit pas empêcher l'autre de fonctionner.
+function registerLibraryHandlers(db: Database.Database): void {
+  ipcMain.handle('mixdeck:libraryGetTracks', (): Track[] => getAllTracks(db))
+  ipcMain.handle(
+    'mixdeck:libraryPickAndScanFolder',
+    async (): Promise<Track[] | null> => {
+      const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+      if (result.canceled) return null
+      return scanFolder(db, result.filePaths[0])
+    }
+  )
+}
+
 app.whenReady().then(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let nativeEngine: any
@@ -165,6 +182,12 @@ app.whenReady().then(() => {
     console.log('[MixDeck] Bridge OK, deck A state =', nativeEngine.deckGetState(0))
   } catch (error) {
     console.error('[MixDeck] Bridge failed to load:', error)
+  }
+
+  try {
+    registerLibraryHandlers(openLibraryDatabase())
+  } catch (error) {
+    console.error('[MixDeck] Bibliothèque (SQLite) indisponible:', error)
   }
 
   const mainWindow = createWindow()

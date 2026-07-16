@@ -234,6 +234,65 @@
         { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — pinned below latest (6.x) for vite@7 peer compatibility" },
         { "name": "epic", "value": "Epic 2 — Story 2.3" }
       ]
+    },
+    {
+      "type": "library",
+      "name": "better-sqlite3",
+      "version": "12.11.1",
+      "purl": "pkg:npm/better-sqlite3@12.11.1",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/WiseLibs/better-sqlite3" },
+        { "type": "advisories", "url": "https://github.com/WiseLibs/better-sqlite3/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm dependency, apps/electron-ui/package.json, exact pinned version — module natif, reconstruit contre l'ABI Electron via @electron/rebuild (ADR-007)" },
+        { "name": "epic", "value": "Epic 5 — Story 5.1" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "music-metadata",
+      "version": "11.14.0",
+      "purl": "pkg:npm/music-metadata@11.14.0",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/Borewit/music-metadata" },
+        { "type": "advisories", "url": "https://github.com/Borewit/music-metadata/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm dependency, apps/electron-ui/package.json, exact pinned version — ESM-only, importé dynamiquement depuis le process main (CJS)" },
+        { "name": "epic", "value": "Epic 5 — Story 5.1" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@electron/rebuild",
+      "version": "4.2.0",
+      "purl": "pkg:npm/%40electron/rebuild@4.2.0",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/electron/rebuild" },
+        { "type": "advisories", "url": "https://github.com/electron/rebuild/security" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — reconstruit better-sqlite3 contre l'ABI Electron" },
+        { "name": "epic", "value": "Epic 5 — Story 5.1" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/better-sqlite3",
+      "version": "7.6.13",
+      "purl": "pkg:npm/%40types/better-sqlite3@7.6.13",
+      "externalReferences": [
+        { "type": "vcs", "url": "https://github.com/DefinitelyTyped/DefinitelyTyped" }
+      ],
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        { "name": "vendoring", "value": "npm devDependency, apps/electron-ui/package.json, exact pinned version — types TypeScript uniquement" },
+        { "name": "epic", "value": "Epic 5 — Story 5.1" }
+      ]
     }
   ]
 }
